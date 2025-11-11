@@ -52,11 +52,13 @@ export interface SignalDetails {
 export interface SuggestedOrder {
   type: string;
   price: number;
+  takeProfit: number;
   reason: string;
 }
 
 export interface AnalysisResult {
   sentiment: string;
   buyOrders: SuggestedOrder[];
+  // FIX: Corrected typo from 'Suggested-Order' to 'SuggestedOrder'.
   sellOrders: SuggestedOrder[];
 }

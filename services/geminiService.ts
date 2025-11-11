@@ -14,28 +14,30 @@ const analysisSchema = {
     },
     buyOrders: {
       type: Type.ARRAY,
-      description: 'Uma lista de duas ordens de compra pendentes sugeridas.',
+      description: 'Uma lista de até duas ordens de compra pendentes sugeridas.',
       items: {
         type: Type.OBJECT,
         properties: {
           type: { type: Type.STRING, description: 'Tipo da ordem (ex: "Buy Limit", "Buy Stop").' },
           price: { type: Type.NUMBER, description: 'Preço de entrada sugerido.' },
+          takeProfit: { type: Type.NUMBER, description: 'Preço alvo para realização de lucro (Take Profit), baseado no próximo nível de VWAP ou pivot.'},
           reason: { type: Type.STRING, description: 'Breve justificativa técnica para a ordem.' }
         },
-        required: ['type', 'price', 'reason']
+        required: ['type', 'price', 'takeProfit', 'reason']
       }
     },
     sellOrders: {
       type: Type.ARRAY,
-      description: 'Uma lista de duas ordens de venda pendentes sugeridas.',
+      description: 'Uma lista de até duas ordens de venda pendentes sugeridas.',
       items: {
         type: Type.OBJECT,
         properties: {
           type: { type: Type.STRING, description: 'Tipo da ordem (ex: "Sell Limit", "Sell Stop").' },
           price: { type: Type.NUMBER, description: 'Preço de entrada sugerido.' },
+          takeProfit: { type: Type.NUMBER, description: 'Preço alvo para realização de lucro (Take Profit), baseado no próximo nível de VWAP ou pivot.'},
           reason: { type: Type.STRING, description: 'Breve justificativa técnica para a ordem.' }
         },
-        required: ['type', 'price', 'reason']
+        required: ['type', 'price', 'takeProfit', 'reason']
       }
     }
   },
@@ -51,7 +53,7 @@ Os níveis de VWAP são:
 - VWAP Mensal: ${vwap.monthly.toFixed(2)}
 - VWAP Anual: ${vwap.annual.toFixed(2)}
 
-Com base nesses níveis, que atuam como suporte e resistência dinâmicos, forneça uma breve análise de sentimento e sugira duas ordens de compra pendentes e duas ordens de venda pendentes. Para cada ordem, especifique o tipo (ex: Buy Limit, Sell Stop), o preço de entrada e uma breve justificativa técnica.
+Com base nesses níveis, que atuam como suporte e resistência dinâmicos, forneça uma breve análise de sentimento e sugira até duas ordens de compra pendentes e até duas ordens de venda pendentes. Para cada ordem, especifique o tipo (ex: Buy Limit, Sell Stop), o preço de entrada, um alvo de take profit realista (baseado no próximo nível chave de preço) e uma breve justificativa técnica.
 `;
 
   const response = await ai.models.generateContent({

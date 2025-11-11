@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchMarketData, fetchCurrentPrice } from './services/dataService';
 import { calculateRSI, calculateHeikinAshi, calculateVwap, calculatePivotPoints } from './services/indicatorService';
-import type { Candle, VwapData, PivotPoints, SignalDetails, HeikinAshiCandle, Signal } from './types';
+import { getTradingAnalysis } from './services/geminiService';
+import type { Candle, VwapData, PivotPoints, SignalDetails, HeikinAshiCandle, Signal, AnalysisResult } from './types';
 import Header from './components/Header';
 import SignalCard from './components/PriceDisplay';
 import KeyLevelsCard from './components/VwapSignals';
@@ -21,6 +22,10 @@ const App: React.FC = () => {
 
   const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
   const [dataError, setDataError] = useState<string | null>(null);
+
+  const [geminiAnalysis, setGeminiAnalysis] = useState<AnalysisResult | null>(null);
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState<boolean>(true);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const generateSignal = useCallback((price: number, data: Candle[]) => {
       if (data.length < 2) return;
@@ -129,6 +134,27 @@ const App: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [isDataLoading, marketData, generateSignal]);
 
+  // Effect for Gemini Analysis
+  useEffect(() => {
+    const performAnalysis = async () => {
+      if (indicators?.vwap && currentPrice > 0) {
+        try {
+          setIsAnalysisLoading(true);
+          setAnalysisError(null);
+          const analysis = await getTradingAnalysis(currentPrice, indicators.vwap);
+          setGeminiAnalysis(analysis);
+        } catch (err) {
+          console.error("Gemini analysis failed:", err);
+          setAnalysisError("Não foi possível obter a análise da IA.");
+        } finally {
+          setIsAnalysisLoading(false);
+        }
+      }
+    };
+    performAnalysis();
+  }, [indicators, currentPrice]);
+
+
   if (isDataLoading) {
     return (
       <div className="min-h-screen bg-bunker flex flex-col justify-center items-center">
@@ -161,12 +187,16 @@ const App: React.FC = () => {
           
           <div className="lg:col-span-2 space-y-6">
             <SignalCard signalDetails={signalDetails} currentPrice={currentPrice} />
-            <QualitativeAnalysisCard signalDetails={signalDetails} />
+            <QualitativeAnalysisCard geminiAnalysis={geminiAnalysis} isAnalysisLoading={isAnalysisLoading} />
           </div>
 
           <div className="lg:col-span-1 flex flex-col space-y-6">
             <KeyLevelsCard pivots={indicators?.pivots ?? null} vwap={indicators?.vwap ?? null} currentPrice={currentPrice} />
-            <RiskCalculatorCard signalDetails={signalDetails} />
+            <RiskCalculatorCard 
+              signalDetails={signalDetails} 
+              geminiAnalysis={geminiAnalysis}
+              isAnalysisLoading={isAnalysisLoading} 
+            />
           </div>
 
         </div>
