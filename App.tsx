@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { fetchMarketData, fetchCurrentPrice } from './services/dataService';
+import { fetchMarketData, fetchCurrentPrice, fetchUsdBrlRate } from './services/dataService';
 import { calculateRSI, calculateHeikinAshi, calculateVwap, calculatePivotPoints } from './services/indicatorService';
 import { getTradingAnalysis } from './services/geminiService';
 import type { Candle, VwapData, PivotPoints, SignalDetails, HeikinAshiCandle, Signal, AnalysisResult } from './types';
@@ -12,6 +13,7 @@ import QualitativeAnalysisCard from './components/PriceChart';
 const App: React.FC = () => {
   const [marketData, setMarketData] = useState<Candle[]>([]);
   const [currentPrice, setCurrentPrice] = useState<number>(0);
+  const [usdBrlRate, setUsdBrlRate] = useState<number>(0);
   const [signalDetails, setSignalDetails] = useState<SignalDetails | null>(null);
   const [indicators, setIndicators] = useState<{
     rsi: number;
@@ -95,6 +97,9 @@ const App: React.FC = () => {
       try {
         setIsDataLoading(true);
         setDataError(null);
+        const rate = await fetchUsdBrlRate();
+        setUsdBrlRate(rate);
+
         const data = await fetchMarketData(200); // Fetch more data for accurate RSI
         setMarketData(data);
 
@@ -141,7 +146,8 @@ const App: React.FC = () => {
         try {
           setIsAnalysisLoading(true);
           setAnalysisError(null);
-          const analysis = await getTradingAnalysis(currentPrice, indicators.vwap);
+          // FIX: The mock getTradingAnalysis function expects 0 arguments.
+          const analysis = await getTradingAnalysis();
           setGeminiAnalysis(analysis);
         } catch (err) {
           console.error("Gemini analysis failed:", err);
@@ -195,7 +201,8 @@ const App: React.FC = () => {
             <RiskCalculatorCard 
               signalDetails={signalDetails} 
               geminiAnalysis={geminiAnalysis}
-              isAnalysisLoading={isAnalysisLoading} 
+              isAnalysisLoading={isAnalysisLoading}
+              usdBrlRate={usdBrlRate}
             />
           </div>
 
