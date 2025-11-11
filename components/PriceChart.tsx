@@ -12,7 +12,9 @@ interface QualitativeAnalysisCardProps {
 
 const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ geminiAnalysis, isAnalysisLoading, marketData, vwap, signalDetails }) => {
     
-    const recentData = marketData.slice(-60); // Show last 60 data points for better context
+    // Check screen size to render a more focused chart on mobile
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const recentData = marketData.slice(isMobile ? -30 : -60);
 
     const chartData = useMemo(() => {
         if (!vwap) return recentData;
@@ -87,26 +89,27 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
         <div className="bg-shark p-4 md:p-6 rounded-lg shadow-lg border border-tuna">
             <h2 className="text-xl font-bold text-white mb-6">Análise Gráfica (IA)</h2>
             
-            <div className="relative w-full h-56 sm:h-64 md:h-80 mb-6">
+            <div className="relative w-full h-60 sm:h-72 md:h-80 mb-6">
                 {signal && (
                     <div className={`absolute top-0 right-0 z-10 px-3 py-1 rounded-bl-lg rounded-tr-md text-xs font-bold uppercase shadow-lg ${status.bg} ${status.textColor}`}>
                         {status.text}
                     </div>
                 )}
                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: -15, bottom: 5 }}>
+                    <LineChart data={chartData} margin={{ top: 5, right: isMobile ? 5 : 20, left: isMobile ? -25 : -15, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#3b404d" strokeOpacity={0.5} />
                         <XAxis 
                             dataKey="date" 
                             tickFormatter={(tick) => new Date(tick).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit'})} 
-                            tick={{ fill: '#94a3b8', fontSize: 11 }} 
+                            tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }} 
                             axisLine={{ stroke: '#3b404d' }}
                             tickLine={{ stroke: '#3b404d' }}
+                            interval={isMobile ? 5 : 'auto'}
                         />
                         <YAxis 
                             domain={yDomain} 
                             tickFormatter={(tick) => `$${(tick / 1000).toFixed(1)}k`} 
-                            tick={{ fill: '#94a3b8', fontSize: 11 }}
+                            tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }}
                             axisLine={{ stroke: '#3b404d' }}
                             tickLine={{ stroke: '#3b404d' }}
                             orientation="left"
@@ -118,23 +121,23 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
                             labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
                         />
                         
-                         <Legend verticalAlign="top" height={36} wrapperStyle={{fontSize: "11px"}}/>
+                         <Legend verticalAlign="top" height={36} wrapperStyle={{fontSize: isMobile ? "10px" : "12px", paddingTop: "5px", paddingBottom: "5px"}}/>
                         
                         {buyZonePrice && (
-                        <ReferenceArea y1={buyZonePrice * 0.995} y2={buyZonePrice * 1.005} strokeOpacity={0.2} fill="#39ff14" fillOpacity={0.15} label={{ value: 'Zona de Compra', position: 'insideTopLeft', fill: '#e2e8f0', fontSize: 12, dy: 10, dx: 10 }} />
+                        <ReferenceArea y1={buyZonePrice * 0.995} y2={buyZonePrice * 1.005} strokeOpacity={0.2} fill="#39ff14" fillOpacity={0.15} label={{ value: 'Zona de Compra', position: 'insideTopLeft', fill: '#e2e8f0', fontSize: isMobile ? 10 : 12, dy: 10, dx: 10 }} />
                         )}
 
                         {sellZonePrice && (
-                        <ReferenceArea y1={sellZonePrice * 0.995} y2={sellZonePrice * 1.005} strokeOpacity={0.2} fill="#ff4d4d" fillOpacity={0.15} label={{ value: 'Zona de Venda', position: 'insideBottomLeft', fill: '#e2e8f0', fontSize: 12, dy: -10, dx: 10 }} />
+                        <ReferenceArea y1={sellZonePrice * 0.995} y2={sellZonePrice * 1.005} strokeOpacity={0.2} fill="#ff4d4d" fillOpacity={0.15} label={{ value: 'Zona de Venda', position: 'insideBottomLeft', fill: '#e2e8f0', fontSize: isMobile ? 10 : 12, dy: -10, dx: 10 }} />
                         )}
 
                         {/* Buy Order TP/SL Lines */}
-                        {buyTakeProfit && <ReferenceLine y={buyTakeProfit} label={{ value: `TP Compra`, fill: '#e2e8f0', fontSize: 10, position: 'insideRight' }} stroke="#39ff14" strokeDasharray="4 4" />}
-                        {buyStopLoss && <ReferenceLine y={buyStopLoss} label={{ value: `SL Compra`, fill: '#e2e8f0', fontSize: 10, position: 'insideRight' }} stroke="#ff4d4d" strokeDasharray="4 4" />}
+                        {buyTakeProfit && <ReferenceLine y={buyTakeProfit} label={{ value: `TP Compra`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideRight' }} stroke="#39ff14" strokeDasharray="4 4" />}
+                        {buyStopLoss && <ReferenceLine y={buyStopLoss} label={{ value: `SL Compra`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideRight' }} stroke="#ff4d4d" strokeDasharray="4 4" />}
                         
                         {/* Sell Order TP/SL Lines */}
-                        {sellTakeProfit && <ReferenceLine y={sellTakeProfit} label={{ value: `TP Venda`, fill: '#e2e8f0', fontSize: 10, position: 'insideRight' }} stroke="#39ff14" strokeDasharray="4 4" />}
-                        {sellStopLoss && <ReferenceLine y={sellStopLoss} label={{ value: `SL Venda`, fill: '#e2e8f0', fontSize: 10, position: 'insideRight' }} stroke="#ff4d4d" strokeDasharray="4 4" />}
+                        {sellTakeProfit && <ReferenceLine y={sellTakeProfit} label={{ value: `TP Venda`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideRight' }} stroke="#39ff14" strokeDasharray="4 4" />}
+                        {sellStopLoss && <ReferenceLine y={sellStopLoss} label={{ value: `SL Venda`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideRight' }} stroke="#ff4d4d" strokeDasharray="4 4" />}
                         
                         <Line type="monotone" dataKey="close" name="Preço" stroke="#00e1ff" strokeWidth={2} dot={false} />
 

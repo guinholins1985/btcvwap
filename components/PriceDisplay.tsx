@@ -45,18 +45,18 @@ const PriceDisplay: React.FC<SignalCardProps> = ({ signalDetails, currentPrice }
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6 text-center">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-4 md:my-6 text-center">
         <div>
             <h3 className="text-sm text-nevada uppercase tracking-wider">Stop Loss (Risco ~5%)</h3>
-            <p className="text-lg md:text-xl font-semibold text-red-accent mt-1">${signalDetails?.stopLoss.toFixed(2) ?? '...'}</p>
+            <p className="text-base sm:text-lg md:text-xl font-semibold text-red-accent mt-1">${signalDetails?.stopLoss.toFixed(2) ?? '...'}</p>
         </div>
         <div>
             <h3 className="text-sm text-nevada uppercase tracking-wider">Preço de Entrada</h3>
-            <p className="text-lg md:text-xl font-semibold text-spindle mt-1">${signalDetails?.entry.toFixed(2) ?? '...'}</p>
+            <p className="text-base sm:text-lg md:text-xl font-semibold text-spindle mt-1">${signalDetails?.entry.toFixed(2) ?? '...'}</p>
         </div>
         <div>
             <h3 className="text-sm text-nevada uppercase tracking-wider">Take Profit (Alvo ~15%)</h3>
-            <p className="text-lg md:text-xl font-semibold text-green-accent mt-1">${signalDetails?.takeProfit.toFixed(2) ?? '...'}</p>
+            <p className="text-base sm:text-lg md:text-xl font-semibold text-green-accent mt-1">${signalDetails?.takeProfit.toFixed(2) ?? '...'}</p>
         </div>
       </div>
       

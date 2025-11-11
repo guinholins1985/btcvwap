@@ -264,10 +264,10 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-bunker font-sans">
       <Header />
-      <main className="container mx-auto p-3 sm:p-4 md:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="container mx-auto p-2 sm:p-4 md:p-6 lg:p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             <SignalCard signalDetails={signalDetails} currentPrice={currentPrice} />
             <QualitativeAnalysisCard 
                 geminiAnalysis={geminiAnalysis} 
@@ -278,7 +278,7 @@ const App: React.FC = () => {
             />
           </div>
 
-          <div className="lg:col-span-1 flex flex-col space-y-6">
+          <div className="lg:col-span-1 flex flex-col space-y-4 md:space-y-6">
             <KeyLevelsCard pivots={indicators?.pivots ?? null} vwap={indicators?.vwap ?? null} currentPrice={currentPrice} />
             <RiskCalculatorCard 
               signalDetails={signalDetails} 

@@ -172,19 +172,19 @@ const RiskCalculatorCard: React.FC<RiskCalculatorCardProps> = ({ signalDetails, 
                     <h3 className="font-semibold text-spindle text-center mb-4">Projeção da Operação (Sinal Atual)</h3>
                     {calculation ? (
                         <>
-                            <div className="flex justify-between text-base">
+                            <div className="flex justify-between text-sm sm:text-base">
                                 <span className="text-nevada">Tamanho do Lote (BTC):</span>
                                 <span className="font-bold text-spindle">{calculation.lotSize}</span>
                             </div>
-                            <div className="flex justify-between text-base">
+                            <div className="flex justify-between text-sm sm:text-base">
                                 <span className="text-nevada">Valor da Posição (USD):</span>
                                 <span className="font-bold text-spindle">${calculation.positionValue}</span>
                             </div>
-                            <div className="flex justify-between text-base">
+                            <div className="flex justify-between text-sm sm:text-base">
                                 <span className="text-nevada">Risco Financeiro:</span>
                                 <span className="font-bold text-red-accent">-${calculation.riskAmount}</span>
                             </div>
-                            <div className="flex justify-between text-base">
+                            <div className="flex justify-between text-sm sm:text-base">
                                 <span className="text-nevada">Retorno Potencial:</span>
                                 <span className="font-bold text-green-accent">+${calculation.profitAmount}</span>
                             </div>

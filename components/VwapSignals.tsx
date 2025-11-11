@@ -10,7 +10,7 @@ interface KeyLevelsCardProps {
 const LevelRow: React.FC<{ label: string; value: number; prevValue?: number; colorClass: string; isResistance: boolean; currentPrice: number }> = ({ label, value, prevValue, colorClass, isResistance, currentPrice }) => {
     const isNear = value > 0 && Math.abs(currentPrice - value) / value < 0.01; // within 1%
     return (
-        <div className={`flex justify-between items-center p-2 rounded ${isNear ? 'bg-bunker' : ''}`}>
+        <div className={`flex justify-between items-center p-1.5 sm:p-2 rounded ${isNear ? 'bg-bunker' : ''}`}>
             <span className={`text-sm font-semibold ${colorClass}`}>{label}</span>
             <div className="text-right">
                 <span className={`text-sm font-mono ${isResistance ? 'text-red-accent' : 'text-green-accent'}`}>
