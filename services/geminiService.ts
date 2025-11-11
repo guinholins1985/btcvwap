@@ -8,6 +8,7 @@ const mockAnalysis: AnalysisResult = {
       type: "Buy Limit",
       price: 102800.00,
       takeProfit: 104500.00,
+      stopLoss: 101950.00,
       reason: "Posicionado em um nível de suporte chave, próximo da VWAP Semanal, aguardando um reteste para uma entrada de baixo risco."
     }
   ],
@@ -16,6 +17,7 @@ const mockAnalysis: AnalysisResult = {
       type: "Sell Limit",
       price: 105500.00,
       takeProfit: 104100.00,
+      stopLoss: 106200.00,
       reason: "Posicionado em uma resistência importante, perto da VWAP Mensal, antecipando uma possível rejeição do preço nesse nível."
     }
   ]

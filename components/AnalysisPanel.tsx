@@ -206,25 +206,45 @@ const RiskCalculatorCard: React.FC<RiskCalculatorCardProps> = ({ signalDetails, 
                         <div className="space-y-3">
                             {geminiAnalysis.buyOrders.map((order, index) => {
                                 const profit = Math.abs(order.takeProfit - order.price) * parseFloat(calculation.lotSize);
+                                const loss = Math.abs(order.price - order.stopLoss) * parseFloat(calculation.lotSize);
                                 return (
                                     <div key={`buy-${index}`} className="bg-bunker p-3 rounded-md border border-tuna/50">
                                         <div className="flex justify-between items-center">
                                             <span className="font-bold text-green-accent text-sm">{order.type} @ ${order.price.toFixed(2)}</span>
-                                            <span className="font-mono text-xs text-green-accent">Lucro: +${profit.toFixed(2)}</span>
                                         </div>
-                                        <p className="text-xs text-nevada mt-1">{order.reason}</p>
+                                        <div className="flex justify-between items-center text-xs font-mono mt-2">
+                                            <div className="text-green-accent text-left">
+                                                <span>TP: ${order.takeProfit.toFixed(2)}</span>
+                                                <span className="block">Lucro: +${profit.toFixed(2)}</span>
+                                            </div>
+                                            <div className="text-red-accent text-right">
+                                                <span>SL: ${order.stopLoss.toFixed(2)}</span>
+                                                <span className="block">Risco: -${loss.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-nevada mt-2 pt-2 border-t border-tuna/50">{order.reason}</p>
                                     </div>
                                 );
                             })}
                             {geminiAnalysis.sellOrders.map((order, index) => {
                                 const profit = Math.abs(order.price - order.takeProfit) * parseFloat(calculation.lotSize);
+                                const loss = Math.abs(order.price - order.stopLoss) * parseFloat(calculation.lotSize);
                                 return (
                                     <div key={`sell-${index}`} className="bg-bunker p-3 rounded-md border border-tuna/50">
-                                        <div className="flex justify-between items-center">
+                                       <div className="flex justify-between items-center">
                                             <span className="font-bold text-red-accent text-sm">{order.type} @ ${order.price.toFixed(2)}</span>
-                                            <span className="font-mono text-xs text-green-accent">Lucro: +${profit.toFixed(2)}</span>
                                         </div>
-                                        <p className="text-xs text-nevada mt-1">{order.reason}</p>
+                                        <div className="flex justify-between items-center text-xs font-mono mt-2">
+                                            <div className="text-green-accent text-left">
+                                                <span>TP: ${order.takeProfit.toFixed(2)}</span>
+                                                <span className="block">Lucro: +${profit.toFixed(2)}</span>
+                                            </div>
+                                            <div className="text-red-accent text-right">
+                                                <span>SL: ${order.stopLoss.toFixed(2)}</span>
+                                                <span className="block">Risco: -${loss.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-nevada mt-2 pt-2 border-t border-tuna/50">{order.reason}</p>
                                     </div>
                                 );
                             })}

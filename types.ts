@@ -53,6 +53,7 @@ export interface SuggestedOrder {
   type: string;
   price: number;
   takeProfit: number;
+  stopLoss: number;
   reason: string;
 }
 
