@@ -31,11 +31,14 @@ const App: React.FC = () => {
   const generateSignal = useCallback((price: number, data: Candle[]) => {
       if (data.length < 2) return;
 
+      const prevCandle = data[data.length - 2];
+      const prevPrice = prevCandle.close;
+
       // Calculate Indicators
       const rsi = calculateRSI(data);
       const heikinAshiCandles = calculateHeikinAshi(data);
       const lastHaCandle = heikinAshiCandles[heikinAshiCandles.length - 1];
-      const pivots = calculatePivotPoints(data[data.length - 2]);
+      const pivots = calculatePivotPoints(prevCandle);
       
       const now = new Date(data[data.length - 1].date);
       now.setHours(23, 59, 59, 999); // End of day for consistent calcs
@@ -85,21 +88,54 @@ const App: React.FC = () => {
       let signal: Signal = 'MANTER';
       const reasons: string[] = [];
 
-      if (rsi <= 30 && lastHaCandle.isGreen) {
-          signal = 'COMPRA';
-          reasons.push("RSI Diário em sobrevenda (≤ 30)");
-          reasons.push("Candle Heikin-Ashi Diário Verde (Confirmação)");
-      } else if (rsi >= 70 && !lastHaCandle.isGreen) {
-          signal = 'VENDA';
-          reasons.push("RSI Diário em sobrecompra (≥ 70)");
-          reasons.push("Candle Heikin-Ashi Diário Vermelho (Confirmação)");
+      // 1. Check for Breakouts
+      if (pivots) {
+          if (prevPrice < pivots.r1 && price >= pivots.r1) {
+              signal = 'ROMPIMENTO';
+              reasons.push(`Rompimento de alta acima da Resistência R1 ($${pivots.r1.toFixed(2)})`);
+          } else if (prevPrice > pivots.s1 && price <= pivots.s1) {
+              signal = 'ROMPIMENTO';
+              reasons.push(`Rompimento de baixa abaixo do Suporte S1 ($${pivots.s1.toFixed(2)})`);
+          }
+      }
+
+      // 2. Check for strong Buy/Sell signals (if no breakout)
+      if (signal !== 'ROMPIMENTO') {
+          if (rsi <= 30 && lastHaCandle.isGreen) {
+              signal = 'COMPRA';
+              reasons.push("RSI Diário em sobrevenda (≤ 30)");
+              reasons.push("Candle Heikin-Ashi Verde (Confirmação)");
+          } else if (rsi >= 70 && !lastHaCandle.isGreen) {
+              signal = 'VENDA';
+              reasons.push("RSI Diário em sobrecompra (≥ 70)");
+              reasons.push("Candle Heikin-Ashi Vermelho (Confirmação)");
+          }
       }
       
-      if(rsi <= 35 && rsi > 30) reasons.push("RSI próximo de sobrevenda");
-      if(rsi >= 65 && rsi < 70) reasons.push("RSI próximo de sobrecompra");
+      // 3. Check for Retracements (if no breakout or strong signal)
+      if (signal !== 'ROMPIMENTO' && signal !== 'COMPRA' && signal !== 'VENDA') {
+          const isUptrend = price > vwap.weekly.current;
+          const isDowntrend = price < vwap.weekly.current;
+
+          if (isUptrend && !lastHaCandle.isGreen && price > vwap.daily.current) {
+              signal = 'RETRAÇÃO';
+              reasons.push("Retração em tendência de alta (acima da VWAP Semanal)");
+          } else if (isDowntrend && lastHaCandle.isGreen && price < vwap.daily.current) {
+              signal = 'RETRAÇÃO';
+              reasons.push("Retração em tendência de baixa (abaixo da VWAP Semanal)");
+          }
+      }
+      
+      // 4. Check for Neutral (if nothing else fits)
+      if (signal === 'MANTER' && rsi > 45 && rsi < 55) {
+          signal = 'NEUTRO';
+          reasons.push("Mercado sem tendência definida (RSI próximo de 50)");
+      }
 
 
       // Confluence Checks
+      if(rsi <= 35 && rsi > 30) reasons.push("RSI próximo de sobrevenda");
+      if(rsi >= 65 && rsi < 70) reasons.push("RSI próximo de sobrecompra");
       if (vwap.daily.current > 0 && price > vwap.daily.current) reasons.push("Preço acima da VWAP Diária");
       if (vwap.daily.current > 0 && price < vwap.daily.current) reasons.push("Preço abaixo da VWAP Diária");
       if (vwap.weekly.current > 0 && price > vwap.weekly.current) reasons.push("Preço acima da VWAP Semanal (Tendência de alta)");
@@ -145,7 +181,7 @@ const App: React.FC = () => {
     loadData();
   }, [generateSignal]);
   
-  // Effect for fetching live price updates
+  // Effect for fetching live price updates and moving the chart
   useEffect(() => {
     if (isDataLoading) return;
 
@@ -153,17 +189,31 @@ const App: React.FC = () => {
       try {
         const price = await fetchCurrentPrice();
         setCurrentPrice(price);
-        // Regenerate signal with new price but old data for consistency until next day
-        if (marketData.length > 0) {
-            generateSignal(price, marketData);
-        }
+        
+        // Update the last candle to make the chart move in real-time
+        setMarketData(prevData => {
+            if (prevData.length === 0) return [];
+            const newData = [...prevData];
+            const lastCandle = { ...newData[newData.length - 1] };
+            lastCandle.close = price;
+             // Also update high/low for realism
+            lastCandle.high = Math.max(lastCandle.high, price);
+            lastCandle.low = Math.min(lastCandle.low, price);
+            newData[newData.length - 1] = lastCandle;
+            
+            // Regenerate signal with the latest price and data
+            generateSignal(price, newData);
+            
+            return newData;
+        });
+
       } catch (error) {
         console.warn("Could not update live price:", error);
       }
     }, 10000); // Fetch every 10 seconds
 
     return () => clearInterval(intervalId);
-  }, [isDataLoading, marketData, generateSignal]);
+  }, [isDataLoading, generateSignal]);
 
   // Effect for Gemini Analysis
   useEffect(() => {
@@ -214,7 +264,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-bunker font-sans">
       <Header />
-      <main className="container mx-auto p-4 md:p-6 lg:p-8">
+      <main className="container mx-auto p-3 sm:p-4 md:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           <div className="lg:col-span-2 space-y-6">
@@ -224,6 +274,7 @@ const App: React.FC = () => {
                 isAnalysisLoading={isAnalysisLoading} 
                 marketData={marketData}
                 vwap={indicators?.vwap ?? null}
+                signalDetails={signalDetails}
             />
           </div>
 

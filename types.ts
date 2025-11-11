@@ -44,7 +44,7 @@ export interface PivotPoints {
     r3: number;
 }
 
-export type Signal = 'COMPRA' | 'VENDA' | 'MANTER';
+export type Signal = 'COMPRA' | 'VENDA' | 'MANTER' | 'NEUTRO' | 'RETRAÇÃO' | 'ROMPIMENTO';
 
 export interface SignalDetails {
     signal: Signal;

@@ -115,7 +115,7 @@ const RiskCalculatorCard: React.FC<RiskCalculatorCardProps> = ({ signalDetails, 
         <div className="bg-shark p-4 md:p-6 rounded-lg shadow-lg border border-tuna h-full flex flex-col">
             <div>
                 <h2 className="text-xl font-bold text-white mb-4">Calculadora de Risco</h2>
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="bankroll" className="block text-sm font-medium text-nevada mb-1">Sua Banca (USD)</label>
@@ -145,7 +145,7 @@ const RiskCalculatorCard: React.FC<RiskCalculatorCardProps> = ({ signalDetails, 
                          {Object.entries(riskLevels).map(([levelName, leverages]) => (
                             <div key={levelName} className="mb-3">
                                 <p className="text-sm text-nevada mb-2">{levelName}</p>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                                     {leverages.map(lev => (
                                     <button
                                         key={lev}
@@ -168,7 +168,7 @@ const RiskCalculatorCard: React.FC<RiskCalculatorCardProps> = ({ signalDetails, 
                     </div>
                 </div>
 
-                <div className="mt-6 border-t border-tuna pt-4 space-y-3">
+                <div className="mt-4 sm:mt-6 border-t border-tuna pt-4 space-y-3">
                     <h3 className="font-semibold text-spindle text-center mb-4">Projeção da Operação (Sinal Atual)</h3>
                     {calculation ? (
                         <>

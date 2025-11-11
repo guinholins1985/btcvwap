@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { AnalysisResult, Candle, VwapData } from '../types';
+import type { AnalysisResult, Candle, VwapData, SignalDetails, Signal } from '../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine, Legend } from 'recharts';
 
 interface QualitativeAnalysisCardProps {
@@ -7,9 +7,10 @@ interface QualitativeAnalysisCardProps {
     isAnalysisLoading: boolean;
     marketData: Candle[];
     vwap: VwapData | null;
+    signalDetails: SignalDetails | null;
 }
 
-const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ geminiAnalysis, isAnalysisLoading, marketData, vwap }) => {
+const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ geminiAnalysis, isAnalysisLoading, marketData, vwap, signalDetails }) => {
     
     const recentData = marketData.slice(-60); // Show last 60 data points for better context
 
@@ -59,25 +60,53 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
         return null; // Don't render chart if no data
     }
 
+    const signal = signalDetails?.signal;
+
+    const getStatusStyles = (signal: Signal | undefined) => {
+        switch (signal) {
+            case 'COMPRA':
+                return { text: 'COMPRA', bg: 'bg-green-accent', textColor: 'text-bunker' };
+            case 'VENDA':
+                return { text: 'VENDA', bg: 'bg-red-accent', textColor: 'text-bunker' };
+            case 'ROMPIMENTO':
+                return { text: 'ROMPIMENTO', bg: 'bg-cyan-accent', textColor: 'text-bunker' };
+            case 'RETRAÇÃO':
+                return { text: 'RETRAÇÃO', bg: 'bg-yellow-500', textColor: 'text-bunker' };
+            case 'NEUTRO':
+                return { text: 'NEUTRO', bg: 'bg-tuna', textColor: 'text-spindle' };
+            case 'MANTER':
+                return { text: 'MANTER', bg: 'bg-tuna', textColor: 'text-spindle' };
+            default:
+                return { text: 'AGUARDANDO', bg: 'bg-shark', textColor: 'text-nevada' };
+        }
+    };
+    const status = getStatusStyles(signal);
+
+
     return (
         <div className="bg-shark p-4 md:p-6 rounded-lg shadow-lg border border-tuna">
             <h2 className="text-xl font-bold text-white mb-6">Análise Gráfica (IA)</h2>
             
-            <div className="w-full h-64 md:h-80 mb-6">
+            <div className="relative w-full h-56 sm:h-64 md:h-80 mb-6">
+                {signal && (
+                    <div className={`absolute top-0 right-0 z-10 px-3 py-1 rounded-bl-lg rounded-tr-md text-xs font-bold uppercase shadow-lg ${status.bg} ${status.textColor}`}>
+                        {status.text}
+                    </div>
+                )}
                  <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 5, right: 20, left: -15, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#3b404d" strokeOpacity={0.5} />
                         <XAxis 
                             dataKey="date" 
                             tickFormatter={(tick) => new Date(tick).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit'})} 
-                            tick={{ fill: '#94a3b8', fontSize: 12 }} 
+                            tick={{ fill: '#94a3b8', fontSize: 11 }} 
                             axisLine={{ stroke: '#3b404d' }}
                             tickLine={{ stroke: '#3b404d' }}
                         />
                         <YAxis 
                             domain={yDomain} 
                             tickFormatter={(tick) => `$${(tick / 1000).toFixed(1)}k`} 
-                            tick={{ fill: '#94a3b8', fontSize: 12 }}
+                            tick={{ fill: '#94a3b8', fontSize: 11 }}
                             axisLine={{ stroke: '#3b404d' }}
                             tickLine={{ stroke: '#3b404d' }}
                             orientation="left"
@@ -89,7 +118,7 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
                             labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
                         />
                         
-                         <Legend verticalAlign="top" height={36} wrapperStyle={{fontSize: "12px"}}/>
+                         <Legend verticalAlign="top" height={36} wrapperStyle={{fontSize: "11px"}}/>
                         
                         {buyZonePrice && (
                         <ReferenceArea y1={buyZonePrice * 0.995} y2={buyZonePrice * 1.005} strokeOpacity={0.2} fill="#39ff14" fillOpacity={0.15} label={{ value: 'Zona de Compra', position: 'insideTopLeft', fill: '#e2e8f0', fontSize: 12, dy: 10, dx: 10 }} />
