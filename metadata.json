@@ -1,0 +1,5 @@
+{
+  "name": "Ferramenta de Sinais BTC/USD VWAP",
+  "description": "Uma ferramenta de análise técnica para o par BTC/USD que utiliza sinais de VWAP (semanal, mensal, anual) e a IA da Gemini para sugerir as melhores ordens pendentes de compra e venda.",
+  "requestFramePermissions": []
+}
