@@ -16,11 +16,16 @@ export interface HeikinAshiCandle {
     isGreen: boolean;
 }
 
+export interface VwapPeriodValue {
+  current: number;
+  previous: number;
+}
+
 export interface VwapData {
-  daily: number;
-  weekly: number;
-  monthly: number;
-  annual: number;
+  daily: VwapPeriodValue;
+  weekly: VwapPeriodValue;
+  monthly: VwapPeriodValue;
+  annual: VwapPeriodValue;
 }
 
 export interface VwapBands {

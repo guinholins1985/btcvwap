@@ -112,7 +112,7 @@ const RiskCalculatorCard: React.FC<RiskCalculatorCardProps> = ({ signalDetails, 
     }, [takeProfitBRL]);
 
     return (
-        <div className="bg-shark p-6 rounded-lg shadow-lg border border-tuna h-full flex flex-col">
+        <div className="bg-shark p-4 md:p-6 rounded-lg shadow-lg border border-tuna h-full flex flex-col">
             <div>
                 <h2 className="text-xl font-bold text-white mb-4">Calculadora de Risco</h2>
                 <div className="space-y-4">

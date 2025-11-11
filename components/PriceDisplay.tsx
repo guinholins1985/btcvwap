@@ -31,15 +31,15 @@ const PriceDisplay: React.FC<SignalCardProps> = ({ signalDetails, currentPrice }
     const changeColorClass = priceChange === 1 ? 'text-green-accent' : priceChange === -1 ? 'text-red-accent' : 'text-spindle';
 
   return (
-    <div className="bg-shark p-6 rounded-lg shadow-lg border border-tuna">
-      <div className="flex justify-between items-start mb-4">
+    <div className="bg-shark p-4 md:p-6 rounded-lg shadow-lg border border-tuna">
+      <div className="flex flex-col sm:flex-row justify-between items-start mb-4 gap-4 sm:gap-2">
         <div>
             <h2 className="text-xl font-bold text-white mb-2">Sinal Atual</h2>
             {signalDetails ? <SignalTag signal={signalDetails.signal} /> : <div className="h-7"></div>}
         </div>
-        <div>
-            <h2 className="text-nevada text-base font-medium mb-1 text-right">Preço Atual (BTC/USD)</h2>
-            <p className={`text-3xl font-bold transition-colors duration-500 text-right ${changeColorClass}`}>
+        <div className="w-full sm:w-auto">
+            <h2 className="text-nevada text-base font-medium mb-1 text-left sm:text-right">Preço Atual (BTC/USD)</h2>
+            <p className={`text-2xl sm:text-3xl font-bold transition-colors duration-500 text-left sm:text-right ${changeColorClass}`}>
                 ${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
         </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchMarketData, fetchCurrentPrice, fetchUsdBrlRate } from './services/dataService';
 import { calculateRSI, calculateHeikinAshi, calculateVwap, calculatePivotPoints } from './services/indicatorService';
@@ -39,18 +38,45 @@ const App: React.FC = () => {
       const pivots = calculatePivotPoints(data[data.length - 2]);
       
       const now = new Date(data[data.length - 1].date);
-      const oneDayAgo = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      now.setHours(23, 59, 59, 999); // End of day for consistent calcs
+
+      // Current periods
+      const oneDayAgo = new Date(now.getTime());
+      oneDayAgo.setDate(now.getDate() - 1);
+      const oneWeekAgo = new Date(now.getTime());
+      oneWeekAgo.setDate(now.getDate() - 7);
       const oneMonthAgo = new Date(now.getTime());
       oneMonthAgo.setMonth(now.getMonth() - 1);
       const oneYearAgo = new Date(now.getTime());
       oneYearAgo.setFullYear(now.getFullYear() - 1);
+      
+      // Previous periods
+      const twoDaysAgo = new Date(oneDayAgo.getTime());
+      twoDaysAgo.setDate(oneDayAgo.getDate() - 1);
+      const twoWeeksAgo = new Date(oneWeekAgo.getTime());
+      twoWeeksAgo.setDate(oneWeekAgo.getDate() - 7);
+      const twoMonthsAgo = new Date(oneMonthAgo.getTime());
+      twoMonthsAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      const twoYearsAgo = new Date(oneYearAgo.getTime());
+      twoYearsAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
       const vwap: VwapData = {
-        daily: calculateVwap(data, oneDayAgo),
-        weekly: calculateVwap(data, oneWeekAgo),
-        monthly: calculateVwap(data, oneMonthAgo),
-        annual: calculateVwap(data, oneYearAgo),
+        daily: {
+          current: calculateVwap(data, oneDayAgo, now),
+          previous: calculateVwap(data, twoDaysAgo, oneDayAgo)
+        },
+        weekly: {
+          current: calculateVwap(data, oneWeekAgo, now),
+          previous: calculateVwap(data, twoWeeksAgo, oneWeekAgo)
+        },
+        monthly: {
+          current: calculateVwap(data, oneMonthAgo, now),
+          previous: calculateVwap(data, twoMonthsAgo, oneMonthAgo)
+        },
+        annual: {
+          current: calculateVwap(data, oneYearAgo, now),
+          previous: calculateVwap(data, twoYearsAgo, oneYearAgo)
+        },
       };
 
       setIndicators({ rsi, haCandle: lastHaCandle, pivots, vwap });
@@ -74,12 +100,12 @@ const App: React.FC = () => {
 
 
       // Confluence Checks
-      if (vwap.daily > 0 && price > vwap.daily) reasons.push("Preço acima da VWAP Diária");
-      if (vwap.daily > 0 && price < vwap.daily) reasons.push("Preço abaixo da VWAP Diária");
-      if (vwap.weekly > 0 && price > vwap.weekly) reasons.push("Preço acima da VWAP Semanal (Tendência de alta)");
-      if (vwap.weekly > 0 && price < vwap.weekly) reasons.push("Preço abaixo da VWAP Semanal (Tendência de baixa)");
-      if (vwap.annual > 0 && price > vwap.annual) reasons.push("Preço acima da VWAP Anual (Macro Bullish)");
-      if (vwap.annual > 0 && price < vwap.annual) reasons.push("Preço abaixo da VWAP Anual (Macro Bearish)");
+      if (vwap.daily.current > 0 && price > vwap.daily.current) reasons.push("Preço acima da VWAP Diária");
+      if (vwap.daily.current > 0 && price < vwap.daily.current) reasons.push("Preço abaixo da VWAP Diária");
+      if (vwap.weekly.current > 0 && price > vwap.weekly.current) reasons.push("Preço acima da VWAP Semanal (Tendência de alta)");
+      if (vwap.weekly.current > 0 && price < vwap.weekly.current) reasons.push("Preço abaixo da VWAP Semanal (Tendência de baixa)");
+      if (vwap.annual.current > 0 && price > vwap.annual.current) reasons.push("Preço acima da VWAP Anual (Macro Bullish)");
+      if (vwap.annual.current > 0 && price < vwap.annual.current) reasons.push("Preço abaixo da VWAP Anual (Macro Bearish)");
       if (pivots && price > pivots.pivot) reasons.push("Preço acima do Pivot Point Diário");
       if (pivots && price < pivots.pivot) reasons.push("Preço abaixo do Pivot Point Diário");
 
@@ -100,7 +126,7 @@ const App: React.FC = () => {
         const rate = await fetchUsdBrlRate();
         setUsdBrlRate(rate);
 
-        const data = await fetchMarketData(200); // Fetch more data for accurate RSI
+        const data = await fetchMarketData(400); // Fetch more data for accurate VWAP
         setMarketData(data);
 
         if (data.length > 0) {
@@ -193,7 +219,12 @@ const App: React.FC = () => {
           
           <div className="lg:col-span-2 space-y-6">
             <SignalCard signalDetails={signalDetails} currentPrice={currentPrice} />
-            <QualitativeAnalysisCard geminiAnalysis={geminiAnalysis} isAnalysisLoading={isAnalysisLoading} />
+            <QualitativeAnalysisCard 
+                geminiAnalysis={geminiAnalysis} 
+                isAnalysisLoading={isAnalysisLoading} 
+                marketData={marketData}
+                vwap={indicators?.vwap ?? null}
+            />
           </div>
 
           <div className="lg:col-span-1 flex flex-col space-y-6">

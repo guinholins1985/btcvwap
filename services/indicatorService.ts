@@ -68,15 +68,16 @@ export const calculateHeikinAshi = (candles: Candle[]): HeikinAshiCandle[] => {
 };
 
 
-export const calculateVwap = (data: Candle[], startDate: Date): number => {
+export const calculateVwap = (data: Candle[], startDate: Date, endDate: Date): number => {
   let cumulativePV = 0;
   let cumulativeVolume = 0;
   
   const startTime = startDate.getTime();
+  const endTime = endDate.getTime();
 
   for (const candle of data) {
     const candleTime = new Date(candle.date).getTime();
-    if (candleTime >= startTime) {
+    if (candleTime >= startTime && candleTime < endTime) {
       const typicalPrice = (candle.high + candle.low + candle.close) / 3;
       cumulativePV += typicalPrice * candle.volume;
       cumulativeVolume += candle.volume;
