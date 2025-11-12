@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { AnalysisResult, Candle, VwapData, SignalDetails, Signal } from '../types';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts';
+import SentimentGauge from './SentimentGauge';
 
 interface QualitativeAnalysisCardProps {
     geminiAnalysis: AnalysisResult | null;
@@ -30,8 +31,6 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
     const buyOrder = geminiAnalysis?.buyOrders?.[0];
     const sellOrder = geminiAnalysis?.sellOrders?.[0];
 
-    const buyZonePrice = buyOrder?.price;
-    const sellZonePrice = sellOrder?.price;
     const buyTakeProfit = buyOrder?.takeProfit;
     const buyStopLoss = buyOrder?.stopLoss;
     const sellTakeProfit = sellOrder?.takeProfit;
@@ -40,7 +39,7 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
     // Calculate y-domain to make sure zones and all lines are fully visible
     const prices = recentData.length > 0 ? recentData.map(d => d.close) : [0];
     const allLevels = [
-        buyZonePrice, sellZonePrice, 
+        buyOrder?.price, sellOrder?.price, 
         buyTakeProfit, buyStopLoss, 
         sellTakeProfit, sellStopLoss,
         vwap?.daily.current,
@@ -123,13 +122,9 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
                         
                          <Legend verticalAlign="top" height={36} wrapperStyle={{fontSize: isMobile ? "10px" : "12px", paddingTop: "5px", paddingBottom: "5px"}}/>
                         
-                        {buyZonePrice && (
-                        <ReferenceArea y1={buyZonePrice * 0.995} y2={buyZonePrice * 1.005} strokeOpacity={0.2} fill="#39ff14" fillOpacity={0.15} label={{ value: 'Zona de Compra', position: 'insideTopLeft', fill: '#e2e8f0', fontSize: isMobile ? 10 : 12, dy: 10, dx: 10 }} />
-                        )}
-
-                        {sellZonePrice && (
-                        <ReferenceArea y1={sellZonePrice * 0.995} y2={sellZonePrice * 1.005} strokeOpacity={0.2} fill="#ff4d4d" fillOpacity={0.15} label={{ value: 'Zona de Venda', position: 'insideBottomLeft', fill: '#e2e8f0', fontSize: isMobile ? 10 : 12, dy: -10, dx: 10 }} />
-                        )}
+                        {/* IA Suggested Entry Points */}
+                        {buyOrder?.price && <ReferenceLine y={buyOrder.price} label={{ value: `Ordem Compra ${buyOrder.price.toFixed(2)}`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideLeft', dx: 10 }} stroke="#39ff14" strokeDasharray="8 8" />}
+                        {sellOrder?.price && <ReferenceLine y={sellOrder.price} label={{ value: `Ordem Venda ${sellOrder.price.toFixed(2)}`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideLeft', dx: 10 }} stroke="#ff4d4d" strokeDasharray="8 8" />}
 
                         {/* Buy Order TP/SL Lines */}
                         {buyTakeProfit && <ReferenceLine y={buyTakeProfit} label={{ value: `TP Compra`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideRight' }} stroke="#39ff14" strokeDasharray="4 4" />}
@@ -159,8 +154,9 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
                     </div>
                 ) : geminiAnalysis?.sentiment ? (
                     <>
-                        <h3 className="font-semibold text-spindle mb-2">Sentimento de Mercado</h3>
-                        <p className="text-nevada text-base">{geminiAnalysis.sentiment}</p>
+                        <h3 className="font-semibold text-spindle mb-2 text-center">Sentimento de Mercado (IA)</h3>
+                        <SentimentGauge sentiment={geminiAnalysis.sentiment} />
+                        <p className="text-nevada text-sm text-center italic">"{geminiAnalysis.sentiment}"</p>
                     </>
                 ) : (
                     <p className="text-nevada text-base text-center">Análise da IA indisponível no momento.</p> 
