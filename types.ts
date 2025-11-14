@@ -53,6 +53,14 @@ export interface SignalDetails {
     takeProfit: number;
     reasons: string[];
 }
+
+export interface FibonacciLevels {
+    swingHigh: number;
+    swingLow: number;
+    isUptrend: boolean;
+    levels: { [level: string]: number };
+}
+
 // FIX: Add missing AnalysisResult and SuggestedOrder types used in geminiService.ts.
 export interface SuggestedOrder {
   type: string;

@@ -40,7 +40,7 @@ const PriceDisplay: React.FC<SignalCardProps> = ({ signalDetails, currentPrice }
         <div className="w-full sm:w-auto">
             <h2 className="text-nevada text-base font-medium mb-1 text-left sm:text-right">Preço Atual (BTC/USD)</h2>
             <p className={`text-2xl sm:text-3xl font-bold transition-colors duration-500 text-left sm:text-right ${changeColorClass}`}>
-                ${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
             </p>
         </div>
       </div>
@@ -48,15 +48,15 @@ const PriceDisplay: React.FC<SignalCardProps> = ({ signalDetails, currentPrice }
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-4 md:my-6 text-center">
         <div>
             <h3 className="text-sm text-nevada uppercase tracking-wider">Stop Loss (Risco ~5%)</h3>
-            <p className="text-base sm:text-lg md:text-xl font-semibold text-red-accent mt-1">${signalDetails?.stopLoss.toFixed(2) ?? '...'}</p>
+            <p className="text-base sm:text-lg md:text-xl font-semibold text-red-accent mt-1">${signalDetails?.stopLoss.toFixed(3) ?? '...'}</p>
         </div>
         <div>
             <h3 className="text-sm text-nevada uppercase tracking-wider">Preço de Entrada</h3>
-            <p className="text-base sm:text-lg md:text-xl font-semibold text-spindle mt-1">${signalDetails?.entry.toFixed(2) ?? '...'}</p>
+            <p className="text-base sm:text-lg md:text-xl font-semibold text-spindle mt-1">${signalDetails?.entry.toFixed(3) ?? '...'}</p>
         </div>
         <div>
             <h3 className="text-sm text-nevada uppercase tracking-wider">Take Profit (Alvo ~15%)</h3>
-            <p className="text-base sm:text-lg md:text-xl font-semibold text-green-accent mt-1">${signalDetails?.takeProfit.toFixed(2) ?? '...'}</p>
+            <p className="text-base sm:text-lg md:text-xl font-semibold text-green-accent mt-1">${signalDetails?.takeProfit.toFixed(3) ?? '...'}</p>
         </div>
       </div>
       

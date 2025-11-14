@@ -77,6 +77,7 @@ const RiskCalculatorCard: React.FC<RiskCalculatorCardProps> = ({ signalDetails, 
         const profitAmount = Math.abs(takeProfitPriceUSD - signalDetails.entry) * lotSize;
 
         return {
+            rawLotSize: lotSize,
             lotSize: formatLotSize(lotSize),
             riskAmount: riskAmount.toFixed(2),
             profitAmount: profitAmount.toFixed(2),
@@ -203,48 +204,58 @@ const RiskCalculatorCard: React.FC<RiskCalculatorCardProps> = ({ signalDetails, 
                             <div className="w-6 h-6 border-2 border-tuna border-t-cyan-accent rounded-full animate-spin"></div>
                         </div>
                     ) : geminiAnalysis && calculation ? (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {geminiAnalysis.buyOrders.map((order, index) => {
-                                const profit = Math.abs(order.takeProfit - order.price) * parseFloat(calculation.lotSize);
-                                const loss = Math.abs(order.price - order.stopLoss) * parseFloat(calculation.lotSize);
+                                const profit = Math.abs(order.takeProfit - order.price) * calculation.rawLotSize;
+                                const risk = Math.abs(order.price - order.stopLoss) * calculation.rawLotSize;
+                                const rrRatio = risk > 0 ? (profit / risk).toFixed(2) : '∞';
+
                                 return (
-                                    <div key={`buy-${index}`} className="bg-bunker p-3 rounded-md border border-tuna/50">
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-bold text-green-accent text-sm">{order.type} @ ${order.price.toFixed(2)}</span>
+                                    <div key={`buy-${index}`} className="bg-bunker p-3 rounded-lg border-l-4 border-green-accent">
+                                        <div className="flex justify-between items-baseline">
+                                            <h4 className="text-sm font-bold text-green-accent uppercase tracking-wider">Compra Limite</h4>
+                                            <p className="text-lg font-mono text-white">
+                                                @ ${order.price.toFixed(3)}
+                                            </p>
                                         </div>
-                                        <div className="flex justify-between items-center text-xs font-mono mt-2">
-                                            <div className="text-green-accent text-left">
-                                                <span>TP: ${order.takeProfit.toFixed(2)}</span>
-                                                <span className="block">Lucro: +${profit.toFixed(2)}</span>
-                                            </div>
-                                            <div className="text-red-accent text-right">
-                                                <span>SL: ${order.stopLoss.toFixed(2)}</span>
-                                                <span className="block">Risco: -${loss.toFixed(2)}</span>
-                                            </div>
+                                        <p className="text-xs text-nevada mt-2 mb-3 italic">{order.reason}</p>
+                                        <div className="mt-2 pt-2 border-t border-tuna/50 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                            <div className="text-nevada">Lucro Potencial</div>
+                                            <div className="text-right font-mono text-green-accent font-semibold">+${profit.toFixed(2)}</div>
+                                            
+                                            <div className="text-nevada">Risco Estimado</div>
+                                            <div className="text-right font-mono text-red-accent font-semibold">-${risk.toFixed(2)}</div>
+
+                                            <div className="text-nevada">Risco/Retorno</div>
+                                            <div className="text-right font-mono text-cyan-accent font-semibold">1 : {rrRatio}</div>
                                         </div>
-                                        <p className="text-xs text-nevada mt-2 pt-2 border-t border-tuna/50">{order.reason}</p>
                                     </div>
                                 );
                             })}
                             {geminiAnalysis.sellOrders.map((order, index) => {
-                                const profit = Math.abs(order.price - order.takeProfit) * parseFloat(calculation.lotSize);
-                                const loss = Math.abs(order.price - order.stopLoss) * parseFloat(calculation.lotSize);
+                                const profit = Math.abs(order.price - order.takeProfit) * calculation.rawLotSize;
+                                const risk = Math.abs(order.stopLoss - order.price) * calculation.rawLotSize;
+                                const rrRatio = risk > 0 ? (profit / risk).toFixed(2) : '∞';
+                                
                                 return (
-                                    <div key={`sell-${index}`} className="bg-bunker p-3 rounded-md border border-tuna/50">
-                                       <div className="flex justify-between items-center">
-                                            <span className="font-bold text-red-accent text-sm">{order.type} @ ${order.price.toFixed(2)}</span>
+                                   <div key={`sell-${index}`} className="bg-bunker p-3 rounded-lg border-l-4 border-red-accent">
+                                        <div className="flex justify-between items-baseline">
+                                            <h4 className="text-sm font-bold text-red-accent uppercase tracking-wider">Venda Limite</h4>
+                                            <p className="text-lg font-mono text-white">
+                                                @ ${order.price.toFixed(3)}
+                                            </p>
                                         </div>
-                                        <div className="flex justify-between items-center text-xs font-mono mt-2">
-                                            <div className="text-green-accent text-left">
-                                                <span>TP: ${order.takeProfit.toFixed(2)}</span>
-                                                <span className="block">Lucro: +${profit.toFixed(2)}</span>
-                                            </div>
-                                            <div className="text-red-accent text-right">
-                                                <span>SL: ${order.stopLoss.toFixed(2)}</span>
-                                                <span className="block">Risco: -${loss.toFixed(2)}</span>
-                                            </div>
+                                        <p className="text-xs text-nevada mt-2 mb-3 italic">{order.reason}</p>
+                                         <div className="mt-2 pt-2 border-t border-tuna/50 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                            <div className="text-nevada">Lucro Potencial</div>
+                                            <div className="text-right font-mono text-green-accent font-semibold">+${profit.toFixed(2)}</div>
+                                            
+                                            <div className="text-nevada">Risco Estimado</div>
+                                            <div className="text-right font-mono text-red-accent font-semibold">-${risk.toFixed(2)}</div>
+
+                                            <div className="text-nevada">Risco/Retorno</div>
+                                            <div className="text-right font-mono text-cyan-accent font-semibold">1 : {rrRatio}</div>
                                         </div>
-                                        <p className="text-xs text-nevada mt-2 pt-2 border-t border-tuna/50">{order.reason}</p>
                                     </div>
                                 );
                             })}

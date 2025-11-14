@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchMarketData, fetchCurrentPrice, fetchUsdBrlRate } from './services/dataService';
-import { calculateRSI, calculateHeikinAshi, calculateVwap, calculatePivotPoints } from './services/indicatorService';
+import { calculateRSI, calculateHeikinAshi, calculateVwap, calculatePivotPoints, calculateFibonacciLevels } from './services/indicatorService';
 import { getTradingAnalysis } from './services/geminiService';
-import type { Candle, VwapData, PivotPoints, SignalDetails, HeikinAshiCandle, Signal, AnalysisResult } from './types';
+import type { Candle, VwapData, PivotPoints, SignalDetails, HeikinAshiCandle, Signal, AnalysisResult, FibonacciLevels } from './types';
 import Header from './components/Header';
 import SignalCard from './components/PriceDisplay';
 import KeyLevelsCard from './components/VwapSignals';
@@ -19,6 +19,7 @@ const App: React.FC = () => {
     haCandle: HeikinAshiCandle | null;
     pivots: PivotPoints | null;
     vwap: VwapData | null;
+    fibonacci: FibonacciLevels | null;
   } | null>(null);
 
   const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
@@ -37,8 +38,39 @@ const App: React.FC = () => {
       // Calculate Indicators
       const rsi = calculateRSI(data);
       const heikinAshiCandles = calculateHeikinAshi(data);
-      const lastHaCandle = heikinAshiCandles[heikinAshiCandles.length - 1];
-      const pivots = calculatePivotPoints(prevCandle);
+      const lastHaCandle = heikinAshiCandles.length > 0 ? heikinAshiCandles[heikinAshiCandles.length - 1] : null;
+      
+      // --- Pivot Point Calculation for Daily Pivots from H1 data ---
+      const lastCandleTime = new Date(data[data.length - 1].date);
+      const yesterday = new Date(lastCandleTime);
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+      const startOfYesterday = new Date(yesterday);
+      startOfYesterday.setUTCHours(0, 0, 0, 0);
+      const endOfYesterday = new Date(yesterday);
+      endOfYesterday.setUTCHours(23, 59, 59, 999);
+
+      const prevDayCandles = data.filter(c => {
+          const candleDate = new Date(c.date);
+          return candleDate >= startOfYesterday && candleDate <= endOfYesterday;
+      });
+
+      let pivots: PivotPoints | null = null;
+      if (prevDayCandles.length > 0) {
+          const prevDayHigh = Math.max(...prevDayCandles.map(c => c.high));
+          const prevDayLow = Math.min(...prevDayCandles.map(c => c.low));
+          const prevDayClose = prevDayCandles[prevDayCandles.length - 1].close;
+          const dummyPrevDayCandle: Candle = {
+              high: prevDayHigh,
+              low: prevDayLow,
+              close: prevDayClose,
+              open: prevDayCandles[0].open,
+              date: prevDayCandles[0].date,
+              volume: 0 // Not used in calculation
+          };
+          pivots = calculatePivotPoints(dummyPrevDayCandle);
+      }
+      
+      const fibonacci = calculateFibonacciLevels(data);
       
       const now = new Date(data[data.length - 1].date);
       now.setHours(23, 59, 59, 999); // End of day for consistent calcs
@@ -82,60 +114,100 @@ const App: React.FC = () => {
         },
       };
 
-      setIndicators({ rsi, haCandle: lastHaCandle, pivots, vwap });
+      setIndicators({ rsi, haCandle: lastHaCandle, pivots, vwap, fibonacci });
 
-      // Signal Logic
+      // Signal Logic Hierarchy
       let signal: Signal = 'MANTER';
       const reasons: string[] = [];
+      let signalSet = false;
 
-      // 1. Check for Breakouts
+      // 1. Check for Breakouts (Highest Priority)
       if (pivots) {
           if (prevPrice < pivots.r1 && price >= pivots.r1) {
               signal = 'ROMPIMENTO';
-              reasons.push(`Rompimento de alta acima da Resistência R1 ($${pivots.r1.toFixed(2)})`);
+              reasons.push(`Rompimento de alta acima da Resistência R1 ($${pivots.r1.toFixed(3)})`);
+              signalSet = true;
           } else if (prevPrice > pivots.s1 && price <= pivots.s1) {
               signal = 'ROMPIMENTO';
-              reasons.push(`Rompimento de baixa abaixo do Suporte S1 ($${pivots.s1.toFixed(2)})`);
+              reasons.push(`Rompimento de baixa abaixo do Suporte S1 ($${pivots.s1.toFixed(3)})`);
+              signalSet = true;
           }
       }
 
-      // 2. Check for strong Buy/Sell signals (if no breakout)
-      if (signal !== 'ROMPIMENTO') {
+      // 2. Check for Fibonacci Reversals/Bounces
+      if (!signalSet && fibonacci && lastHaCandle) {
+          const { levels, isUptrend } = fibonacci;
+          const fib100 = levels['100%'];
+          const fib200 = levels['200%'];
+          const isNear = (level: number) => level > 0 && Math.abs(price - level) / level < 0.005;
+
+          // Reversal at 200% Extension (Exhaustion)
+          if (isUptrend && isNear(fib200) && !lastHaCandle.isGreen && rsi > 68) {
+               signal = 'VENDA';
+               reasons.push(`Exaustão de alta perto da Extensão Fibonacci 200% em $${fib200.toFixed(3)}.`);
+               signalSet = true;
+          } else if (!isUptrend && isNear(fib200) && lastHaCandle.isGreen && rsi < 32) {
+               signal = 'COMPRA';
+               reasons.push(`Exaustão de baixa perto da Extensão Fibonacci 200% em $${fib200.toFixed(3)}.`);
+               signalSet = true;
+          }
+
+          // Bounce at 100% Retracement (Swing Point Retest)
+          if (!signalSet) {
+              if (isUptrend && isNear(fib100) && lastHaCandle.isGreen && price > fib100) {
+                  signal = 'COMPRA';
+                  reasons.push(`Teste e rejeição do Fundo do Swing (Fibonacci 100%) em $${fib100.toFixed(3)}.`);
+                  signalSet = true;
+              } else if (!isUptrend && isNear(fib100) && !lastHaCandle.isGreen && price < fib100) {
+                  signal = 'VENDA';
+                  reasons.push(`Teste e rejeição do Topo do Swing (Fibonacci 100%) em $${fib100.toFixed(3)}.`);
+                  signalSet = true;
+              }
+          }
+      }
+
+      // 3. Check for strong RSI + Heikin-Ashi signals
+      if (!signalSet && lastHaCandle) {
           if (rsi <= 30 && lastHaCandle.isGreen) {
               signal = 'COMPRA';
-              reasons.push("RSI Diário em sobrevenda (≤ 30)");
-              reasons.push("Candle Heikin-Ashi Verde (Confirmação)");
+              reasons.push("RSI(15) Horário (H1) em sobrevenda (≤ 30)");
+              reasons.push("Candle Heikin-Ashi Verde (Confirmação H1)");
+              signalSet = true;
           } else if (rsi >= 70 && !lastHaCandle.isGreen) {
               signal = 'VENDA';
-              reasons.push("RSI Diário em sobrecompra (≥ 70)");
-              reasons.push("Candle Heikin-Ashi Vermelho (Confirmação)");
+              reasons.push("RSI(15) Horário (H1) em sobrecompra (≥ 70)");
+              reasons.push("Candle Heikin-Ashi Vermelho (Confirmação H1)");
+              signalSet = true;
           }
       }
       
-      // 3. Check for Retracements (if no breakout or strong signal)
-      if (signal !== 'ROMPIMENTO' && signal !== 'COMPRA' && signal !== 'VENDA') {
-          const isUptrend = price > vwap.weekly.current;
-          const isDowntrend = price < vwap.weekly.current;
+      // 4. Check for VWAP Retracements
+      if (!signalSet && lastHaCandle) {
+          const isVwapUptrend = price > vwap.weekly.current;
+          const isVwapDowntrend = price < vwap.weekly.current;
 
-          if (isUptrend && !lastHaCandle.isGreen && price > vwap.daily.current) {
+          if (isVwapUptrend && !lastHaCandle.isGreen && price > vwap.daily.current) {
               signal = 'RETRAÇÃO';
               reasons.push("Retração em tendência de alta (acima da VWAP Semanal)");
-          } else if (isDowntrend && lastHaCandle.isGreen && price < vwap.daily.current) {
+              signalSet = true;
+          } else if (isVwapDowntrend && lastHaCandle.isGreen && price < vwap.daily.current) {
               signal = 'RETRAÇÃO';
               reasons.push("Retração em tendência de baixa (abaixo da VWAP Semanal)");
+              signalSet = true;
           }
       }
       
-      // 4. Check for Neutral (if nothing else fits)
-      if (signal === 'MANTER' && rsi > 45 && rsi < 55) {
+      // 5. Determine Neutral or final fallback state
+      if (!signalSet && rsi > 45 && rsi < 55) {
           signal = 'NEUTRO';
-          reasons.push("Mercado sem tendência definida (RSI próximo de 50)");
+          reasons.push("Mercado sem tendência definida (RSI H1 próximo de 50)");
+      } else if (!signalSet) {
+          signal = 'MANTER';
       }
 
-
-      // Confluence Checks
-      if(rsi <= 35 && rsi > 30) reasons.push("RSI próximo de sobrevenda");
-      if(rsi >= 65 && rsi < 70) reasons.push("RSI próximo de sobrecompra");
+      // Confluence Checks (add reasons without changing the signal)
+      if(rsi <= 35 && rsi > 30) reasons.push("RSI(15) Horário (H1) próximo de sobrevenda");
+      if(rsi >= 65 && rsi < 70) reasons.push("RSI(15) Horário (H1) próximo de sobrecompra");
       if (vwap.daily.current > 0 && price > vwap.daily.current) reasons.push("Preço acima da VWAP Diária");
       if (vwap.daily.current > 0 && price < vwap.daily.current) reasons.push("Preço abaixo da VWAP Diária");
       if (vwap.weekly.current > 0 && price > vwap.weekly.current) reasons.push("Preço acima da VWAP Semanal (Tendência de alta)");
@@ -222,8 +294,7 @@ const App: React.FC = () => {
         try {
           setIsAnalysisLoading(true);
           setAnalysisError(null);
-          // FIX: The mock getTradingAnalysis function expects 0 arguments.
-          const analysis = await getTradingAnalysis();
+          const analysis = await getTradingAnalysis(indicators?.vwap ?? null);
           setGeminiAnalysis(analysis);
         } catch (err) {
           console.error("Gemini analysis failed:", err);
@@ -267,19 +338,26 @@ const App: React.FC = () => {
       <main className="container mx-auto p-2 sm:p-4 md:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           
-          <div className="lg:col-span-2 space-y-4 md:space-y-6">
+          {/* Top Section: Price and Key Levels */}
+          <div className="lg:col-span-2">
             <SignalCard signalDetails={signalDetails} currentPrice={currentPrice} />
+          </div>
+          <div className="lg:col-span-1">
+            <KeyLevelsCard pivots={indicators?.pivots ?? null} vwap={indicators?.vwap ?? null} currentPrice={currentPrice} fibonacci={indicators?.fibonacci ?? null} />
+          </div>
+
+          {/* Main Analysis Section */}
+          <div className="lg:col-span-2">
             <QualitativeAnalysisCard 
                 geminiAnalysis={geminiAnalysis} 
                 isAnalysisLoading={isAnalysisLoading} 
                 marketData={marketData}
                 vwap={indicators?.vwap ?? null}
+                fibonacci={indicators?.fibonacci ?? null}
                 signalDetails={signalDetails}
             />
           </div>
-
-          <div className="lg:col-span-1 flex flex-col space-y-4 md:space-y-6">
-            <KeyLevelsCard pivots={indicators?.pivots ?? null} vwap={indicators?.vwap ?? null} currentPrice={currentPrice} />
+          <div className="lg:col-span-1">
             <RiskCalculatorCard 
               signalDetails={signalDetails} 
               geminiAnalysis={geminiAnalysis}

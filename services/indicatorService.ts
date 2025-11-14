@@ -1,6 +1,6 @@
-import type { Candle, HeikinAshiCandle, PivotPoints } from '../types';
+import type { Candle, HeikinAshiCandle, PivotPoints, FibonacciLevels } from '../types';
 
-export const calculateRSI = (candles: Candle[], period: number = 14): number => {
+export const calculateRSI = (candles: Candle[], period: number = 15): number => {
     if (candles.length < period + 1) return 50;
 
     const priceChanges = candles.map((c, i) => i > 0 ? c.close - candles[i-1].close : 0).slice(1);
@@ -65,6 +65,52 @@ export const calculateHeikinAshi = (candles: Candle[]): HeikinAshiCandle[] => {
     }
 
     return haCandles;
+};
+
+export const calculateFibonacciLevels = (candles: Candle[], period: number = 90): FibonacciLevels | null => {
+    if (candles.length < period) return null;
+
+    const relevantCandles = candles.slice(-period);
+    
+    let swingHigh = -Infinity;
+    let swingLow = Infinity;
+    let highIndex = -1;
+    let lowIndex = -1;
+
+    relevantCandles.forEach((c, index) => {
+        if (c.high > swingHigh) {
+            swingHigh = c.high;
+            highIndex = index;
+        }
+        if (c.low < swingLow) {
+            swingLow = c.low;
+            lowIndex = index;
+        }
+    });
+
+    if (swingHigh === -Infinity || swingLow === Infinity || highIndex === -1 || lowIndex === -1) return null;
+
+    const isUptrend = highIndex > lowIndex;
+    const range = swingHigh - swingLow;
+
+    // Fibonacci Ratios including 100% and 200%
+    const fibRatios = [0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.618, 2.0];
+    
+    const levels: { [level: string]: number } = {};
+
+    if (isUptrend) {
+        fibRatios.forEach(ratio => {
+            const levelValue = ratio <= 1 ? swingHigh - (range * ratio) : swingHigh + (range * (ratio - 1));
+            levels[`${(ratio * 100).toFixed(0)}%`] = levelValue;
+        });
+    } else { // Downtrend
+         fibRatios.forEach(ratio => {
+            const levelValue = ratio <= 1 ? swingLow + (range * ratio) : swingLow - (range * (ratio - 1));
+            levels[`${(ratio * 100).toFixed(0)}%`] = levelValue;
+        });
+    }
+
+    return { swingHigh, swingLow, isUptrend, levels };
 };
 
 

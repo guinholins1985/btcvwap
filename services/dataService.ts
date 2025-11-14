@@ -1,45 +1,64 @@
 import type { Candle } from '../types';
 
 // Mock data to simulate historical market data, making the app self-contained.
-const mockCandleData: Candle[] = Array.from({ length: 200 }, (_, i) => {
-  const date = new Date();
-  date.setDate(date.getDate() - (200 - i));
-  const open = 104000 + Math.sin(i / 20) * 2000 + (Math.random() - 0.5) * 500;
-  const close = open + (Math.random() - 0.5) * 800;
-  const high = Math.max(open, close) + Math.random() * 300;
-  const low = Math.min(open, close) - Math.random() * 300;
-  const volume = 1000 + Math.random() * 1500;
-  return {
-    date: date.toISOString().split('T')[0],
-    open: parseFloat(open.toFixed(2)),
-    high: parseFloat(high.toFixed(2)),
-    low: parseFloat(low.toFixed(2)),
-    close: parseFloat(close.toFixed(2)),
-    volume: parseFloat(volume.toFixed(2)),
-  };
-});
+// Generates 400 days of hourly data.
+const mockCandleData: Candle[] = (() => {
+  const data: Candle[] = [];
+  const totalHours = 400 * 24;
+  let price = 65000;
+  const startDate = new Date();
+
+  for (let i = 0; i < totalHours; i++) {
+    const date = new Date(startDate);
+    date.setUTCHours(date.getUTCHours() - (totalHours - i));
+    
+    const open = price;
+    const fluctuation = (Math.random() - 0.49) * 400; // More frequent but smaller moves for H1
+    const close = open + fluctuation;
+    const high = Math.max(open, close) + Math.random() * 100;
+    const low = Math.min(open, close) - Math.random() * 100;
+    const volume = 50 + Math.random() * 100;
+    
+    price = close; // Next candle opens at previous close
+
+    data.push({
+      date: date.toISOString(),
+      open: parseFloat(open.toFixed(3)),
+      high: parseFloat(high.toFixed(3)),
+      low: parseFloat(low.toFixed(3)),
+      close: parseFloat(close.toFixed(3)),
+      volume: parseFloat(volume.toFixed(3)),
+    });
+  }
+  return data;
+})();
+
 
 /**
  * Fetches historical OHLCV data for BTC/USD from a local mock source.
- * @param _days The number of days of historical data to fetch (parameter ignored).
- * @returns A promise that resolves to an array of Candle objects.
+ * @param days The number of days of historical data to fetch.
+ * @returns A promise that resolves to an array of Candle objects (hourly).
  */
-export const fetchMarketData = async (_days: number): Promise<Candle[]> => {
-  // Returns a copy of the mock data to prevent mutation.
-  return Promise.resolve([...mockCandleData]);
+export const fetchMarketData = async (days: number): Promise<Candle[]> => {
+  const hours = days * 24;
+  if (hours > mockCandleData.length) {
+      return Promise.resolve([...mockCandleData]);
+  }
+  // Return the most recent `hours` worth of data.
+  return Promise.resolve(mockCandleData.slice(-hours));
 };
 
 
-let lastPrice = mockCandleData[mockCandleData.length - 1].close;
+let lastPrice = mockCandleData.length > 0 ? mockCandleData[mockCandleData.length - 1].close : 65000;
 /**
  * Simulates fetching the current price for BTC/USD.
  * @returns A promise that resolves to the current price as a number.
  */
 export const fetchCurrentPrice = async (): Promise<number> => {
     // Simulate small price fluctuations to mimic a live market.
-    const fluctuation = (Math.random() - 0.5) * 150; // Fluctuate by up to $75
-    lastPrice = Math.max(90000, lastPrice + fluctuation); // Ensure price doesn't go too low
-    return Promise.resolve(parseFloat(lastPrice.toFixed(2)));
+    const fluctuation = (Math.random() - 0.5) * 10; // Fluctuate by up to $10, suitable for H1 with more precision
+    lastPrice = Math.max(50000, lastPrice + fluctuation); // Ensure price doesn't go too low
+    return Promise.resolve(parseFloat(lastPrice.toFixed(3)));
 }
 
 /**
