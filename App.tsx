@@ -368,7 +368,7 @@ const App: React.FC = () => {
 
         </div>
         <footer className="text-center text-nevada mt-12 text-sm">
-          <p>Aviso: Os dados de mercado são fornecidos pela CryptoCompare. As análises não constituem aconselhamento financeiro.</p>
+          <p>Aviso: Os dados de mercado são simulados com base em referências do Investing.com. As análises não constituem aconselhamento financeiro.</p>
         </footer>
       </main>
     </div>
