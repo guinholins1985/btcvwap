@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import type { AnalysisResult, Candle, VwapData, SignalDetails, Signal, FibonacciLevels } from '../types';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts';
+import type { AnalysisResult, Candle, VwapData, SignalDetails, Signal, FibonacciLevels, IndicatorSeries } from '../types';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, Line } from 'recharts';
 import SentimentGauge from './SentimentGauge';
 
 interface QualitativeAnalysisCardProps {
@@ -10,59 +10,63 @@ interface QualitativeAnalysisCardProps {
     vwap: VwapData | null;
     signalDetails: SignalDetails | null;
     fibonacci: FibonacciLevels | null;
+    indicatorSeries: IndicatorSeries | null;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-bunker/80 backdrop-blur-sm p-3 rounded-md border border-tuna text-sm shadow-lg">
-          <p className="label text-spindle font-bold mb-2">{new Date(label).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+        <div className="bg-bunker/80 backdrop-blur-sm p-2 rounded-md border border-tuna text-xs shadow-lg">
+          <p className="label text-spindle font-bold mb-1">{new Date(label).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
           <p className="text-cyan-accent font-semibold">{`Preço: $${data.close.toFixed(3)}`}</p>
-          <p className="text-nevada mt-1">{`Abertura: $${data.open.toFixed(3)}`}</p>
-          <p className="text-nevada">{`Máxima: $${data.high.toFixed(3)}`}</p>
-          <p className="text-nevada">{`Mínima: $${data.low.toFixed(3)}`}</p>
+          {data.ema50 && <p className="text-pink-accent font-mono text-xs">{`EMA 50: $${data.ema50.toFixed(3)}`}</p>}
+          {data.ema200 && <p className="text-orange-accent font-mono text-xs">{`EMA 200: $${data.ema200.toFixed(3)}`}</p>}
         </div>
       );
     }
     return null;
   };
 
-const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ geminiAnalysis, isAnalysisLoading, marketData, vwap, signalDetails, fibonacci }) => {
+const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ geminiAnalysis, isAnalysisLoading, marketData, vwap, signalDetails, fibonacci, indicatorSeries }) => {
     
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    const recentData = marketData.slice(isMobile ? -60 : -120);
+    const sliceAmount = isMobile ? -60 : -120;
+    const recentData = marketData.slice(sliceAmount);
 
     const chartData = useMemo(() => {
-        if (!vwap) return recentData;
-        return recentData.map(d => ({
+        if (!recentData.length) return [];
+        
+        const slicedEma50 = indicatorSeries?.ema50.slice(sliceAmount) ?? [];
+        const slicedEma200 = indicatorSeries?.ema200.slice(sliceAmount) ?? [];
+
+        return recentData.map((d, i) => ({
             ...d,
-            vwapDaily: vwap.daily.current,
-            vwapWeekly: vwap.weekly.current,
-            vwapMonthly: vwap.monthly.current,
-            vwapAnnual: vwap.annual.current,
+            vwapDaily: vwap?.daily.current,
+            vwapWeekly: vwap?.weekly.current,
+            vwapMonthly: vwap?.monthly.current,
+            vwapAnnual: vwap?.annual.current,
+            ema50: slicedEma50[i],
+            ema200: slicedEma200[i],
         }));
-    }, [recentData, vwap]);
+    }, [recentData, vwap, indicatorSeries, sliceAmount]);
 
     const buyOrder = geminiAnalysis?.buyOrders?.[0];
     const sellOrder = geminiAnalysis?.sellOrders?.[0];
 
-    const buyTakeProfit = buyOrder?.takeProfit;
-    const buyStopLoss = buyOrder?.stopLoss;
-    const sellTakeProfit = sellOrder?.takeProfit;
-    const sellStopLoss = sellOrder?.stopLoss;
-
     const prices = recentData.length > 0 ? recentData.map(d => d.close) : [0];
     const fibLevels = fibonacci ? Object.values(fibonacci.levels) : [];
+    const emaValues = chartData.flatMap(d => [d.ema50, d.ema200]).filter(v => v != null);
+
     const allLevels = [
         buyOrder?.price, sellOrder?.price, 
-        buyTakeProfit, buyStopLoss, 
-        sellTakeProfit, sellStopLoss,
+        signalDetails?.takeProfit, signalDetails?.stopLoss,
         vwap?.daily.current,
         vwap?.weekly.current,
         vwap?.monthly.current,
         vwap?.annual.current,
         ...fibLevels,
+        ...emaValues,
     ].filter((p): p is number => p !== undefined && p !== null && p > 0);
 
 
@@ -91,31 +95,24 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
             default: return { text: 'AGUARDANDO', bg: 'bg-shark', textColor: 'text-nevada' };
         }
     };
-    const getTitle = (signal: Signal | undefined) => {
-        switch (signal) {
-            case 'COMPRA': return 'Análise Gráfica: Oportunidade de Compra Detectada';
-            case 'VENDA': return 'Análise Gráfica: Oportunidade de Venda Detectada';
-            case 'ROMPIMENTO': return 'Análise Gráfica: Movimento de Rompimento';
-            case 'RETRAÇÃO': return 'Análise Gráfica: Retração em Andamento';
-            default: return 'Análise Gráfica (IA)';
-        }
-    };
-
+    
     const status = getStatusStyles(signal);
 
 
     return (
         <div className="bg-shark p-4 md:p-6 rounded-lg shadow-lg border border-tuna h-full">
-            <h2 className="text-xl font-bold text-white mb-6">{getTitle(signal)}</h2>
-            
-            <div className="relative w-full h-80 md:h-96 mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                <h2 className="text-xl font-bold text-white mb-2 sm:mb-0">Análise Gráfica e IA</h2>
                 {signal && (
-                    <div className={`absolute top-0 right-0 z-10 px-3 py-1 rounded-bl-lg rounded-tr-md text-xs font-bold uppercase shadow-lg ${status.bg} ${status.textColor}`}>
+                    <div className={`px-3 py-1 rounded text-xs sm:text-sm font-bold uppercase shadow-lg ${status.bg} ${status.textColor}`}>
                         {status.text}
                     </div>
                 )}
+            </div>
+            
+            <div className="relative w-full h-72 md:h-80 mb-2">
                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 5, right: isMobile ? 5 : 20, left: isMobile ? -25 : -15, bottom: 0 }}>
+                    <AreaChart data={chartData} margin={{ top: 5, right: isMobile ? 5 : 20, left: isMobile ? -30 : -15, bottom: 0 }}>
                         <defs>
                             <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#00e1ff" stopOpacity={0.4}/>
@@ -129,7 +126,7 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
                             tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }} 
                             axisLine={{ stroke: '#3b404d' }}
                             tickLine={{ stroke: '#3b404d' }}
-                            interval={isMobile ? 12 : 12}
+                            interval={isMobile ? 20 : 12}
                         />
                         <YAxis 
                             domain={yDomain} 
@@ -138,25 +135,35 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
                             axisLine={{ stroke: '#3b404d' }}
                             tickLine={{ stroke: '#3b404d' }}
                             orientation="left"
+                            tickCount={isMobile ? 6 : 8}
                         />
                         <Tooltip content={<CustomTooltip />} />
                         
-                         <Legend verticalAlign="top" height={36} wrapperStyle={{fontSize: isMobile ? "10px" : "12px", paddingTop: "5px", paddingBottom: "5px"}}/>
+                         <Legend verticalAlign="top" height={30} wrapperStyle={{fontSize: isMobile ? "10px" : "12px", paddingTop: "0px", paddingBottom: "10px"}}/>
                         
-                        {buyOrder?.price && <ReferenceLine y={buyOrder.price} label={{ value: `Ordem Compra ${buyOrder.price.toFixed(3)}`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideLeft', dx: 10 }} stroke="#39ff14" strokeDasharray="8 8" />}
-                        {sellOrder?.price && <ReferenceLine y={sellOrder.price} label={{ value: `Ordem Venda ${sellOrder.price.toFixed(3)}`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideLeft', dx: 10 }} stroke="#ff4d4d" strokeDasharray="8 8" />}
+                        {/* Ordens Pendentes IA */}
+                        {buyOrder?.price && (
+                            <ReferenceLine y={buyOrder.price} label={{ value: `Buy Limit IA`, fill: '#e2e8f0', fontSize: isMobile ? 8 : 10, position: 'left' }} stroke="#39ff14" strokeDasharray="4 4" strokeOpacity={0.8} />
+                        )}
+                        {sellOrder?.price && (
+                            <ReferenceLine y={sellOrder.price} label={{ value: `Sell Limit IA`, fill: '#e2e8f0', fontSize: isMobile ? 8 : 10, position: 'left' }} stroke="#ff4d4d" strokeDasharray="4 4" strokeOpacity={0.8} />
+                        )}
+                        
+                        {/* Sinal Atual TP/SL */}
+                        {(signalDetails?.signal === 'COMPRA' || signalDetails?.signal === 'VENDA') && signalDetails.takeProfit && (
+                             <ReferenceLine y={signalDetails.takeProfit} label={{ value: 'Take Profit', fill: '#39ff14', fontSize: isMobile ? 8 : 10, position: 'right' }} stroke="#39ff14" strokeDasharray="2 2" />
+                        )}
+                        {(signalDetails?.signal === 'COMPRA' || signalDetails?.signal === 'VENDA') && signalDetails.stopLoss && (
+                             <ReferenceLine y={signalDetails.stopLoss} label={{ value: 'Stop Loss', fill: '#ff4d4d', fontSize: isMobile ? 8 : 10, position: 'right' }} stroke="#ff4d4d" strokeDasharray="2 2" />
+                        )}
 
-                        {buyTakeProfit && <ReferenceLine y={buyTakeProfit} label={{ value: `TP Compra`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideRight' }} stroke="#39ff14" strokeDasharray="4 4" />}
-                        {buyStopLoss && <ReferenceLine y={buyStopLoss} label={{ value: `SL Compra`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideRight' }} stroke="#ff4d4d" strokeDasharray="4 4" />}
-                        
-                        {sellTakeProfit && <ReferenceLine y={sellTakeProfit} label={{ value: `TP Venda`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideRight' }} stroke="#39ff14" strokeDasharray="4 4" />}
-                        {sellStopLoss && <ReferenceLine y={sellStopLoss} label={{ value: `SL Venda`, fill: '#e2e8f0', fontSize: isMobile ? 9 : 10, position: 'insideRight' }} stroke="#ff4d4d" strokeDasharray="4 4" />}
-                        
-                        {fibonacci && Object.entries(fibonacci.levels).map(([level, value]) => (
+                        {/* Níveis Fibonacci */}
+                        {fibonacci && Object.entries(fibonacci.levels)
+                            .map(([level, value]) => (
                             <ReferenceLine 
                                 key={level} 
                                 y={value} 
-                                label={{ value: `Fib ${level}`, fill: '#facc15', fontSize: isMobile ? 8 : 10, position: 'right', dx: isMobile ? -35 : -50 }} 
+                                label={{ value: `Fib ${level}`, fill: '#facc15', fontSize: isMobile ? 8 : 10, position: 'right', dx: isMobile ? -30 : -45 }} 
                                 stroke="#facc15"
                                 strokeDasharray="3 3" 
                                 strokeOpacity={0.7}
@@ -164,12 +171,14 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
                         ))}
 
                         <Area type="monotone" dataKey="close" name="Preço" stroke="#00e1ff" strokeWidth={2} fillOpacity={1} fill="url(#priceGradient)" dot={false} />
+                        <Line type="monotone" dataKey="ema50" name="EMA 50" stroke="#ec4899" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="ema200" name="EMA 200" stroke="#f97316" strokeWidth={2} dot={false} />
 
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                 <div>
                     {isAnalysisLoading ? (
                          <div className="flex justify-center items-center h-full">
@@ -195,7 +204,7 @@ const QualitativeAnalysisCard: React.FC<QualitativeAnalysisCardProps> = ({ gemin
                             <h3 className="font-semibold text-spindle mb-3">Análise Qualitativa da IA</h3>
                             <p className="text-nevada text-sm italic mb-4">"{geminiAnalysis.sentiment}"</p>
                             <h3 className="font-semibold text-spindle mb-2">Sugestão de Estratégia</h3>
-                            <p className="text-nevada text-sm">Considere ordens limites perto de níveis chave (VWAPs, Pivots).</p>
+                            <p className="text-nevada text-sm">Considere ordens limites perto de níveis chave (EMAs, VWAPs, Pivots).</p>
                         </>
                     ) : (
                         <p className="text-nevada text-base text-center">Análise da IA indisponível no momento.</p> 

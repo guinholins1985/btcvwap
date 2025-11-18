@@ -169,29 +169,39 @@ const RiskCalculatorCard: React.FC<RiskCalculatorCardProps> = ({ signalDetails, 
                     </div>
                 </div>
 
-                <div className="mt-4 sm:mt-6 border-t border-tuna pt-4 space-y-3">
+                <div className="mt-4 sm:mt-6 border-t border-tuna pt-4">
                     <h3 className="font-semibold text-spindle text-center mb-4">Projeção da Operação (Sinal Atual)</h3>
-                    {calculation ? (
+                    {calculation && signalDetails ? (
                         <>
-                            <div className="flex justify-between text-sm sm:text-base">
-                                <span className="text-nevada">Tamanho do Lote (BTC):</span>
-                                <span className="font-bold text-spindle">{calculation.lotSize}</span>
+                             <div className="text-center mb-3">
+                                <span className="text-sm text-nevada">Preço de Entrada do Sinal: </span>
+                                <span className="font-mono text-lg font-bold text-spindle">${signalDetails.entry.toFixed(3)}</span>
                             </div>
-                            <div className="flex justify-between text-sm sm:text-base">
-                                <span className="text-nevada">Valor da Posição (USD):</span>
-                                <span className="font-bold text-spindle">${calculation.positionValue}</span>
+                            <div className="text-center bg-bunker rounded-lg p-4 mb-4">
+                                <h4 className="text-sm font-medium text-nevada uppercase tracking-wider">Lote Sugerido (BTC)</h4>
+                                <p className="text-4xl font-bold text-cyan-accent my-1">{calculation.lotSize}</p>
+                                <p className="text-xs text-tuna">Baseado na sua banca e alavancagem selecionada.</p>
                             </div>
-                            <div className="flex justify-between text-sm sm:text-base">
-                                <span className="text-nevada">Risco Financeiro:</span>
-                                <span className="font-bold text-red-accent">-${calculation.riskAmount}</span>
-                            </div>
-                            <div className="flex justify-between text-sm sm:text-base">
-                                <span className="text-nevada">Retorno Potencial:</span>
-                                <span className="font-bold text-green-accent">+${calculation.profitAmount}</span>
+                            
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm sm:text-base">
+                                    <span className="text-nevada">Valor da Posição (USD):</span>
+                                    <span className="font-bold text-spindle">${calculation.positionValue}</span>
+                                </div>
+                                <div className="flex justify-between text-sm sm:text-base">
+                                    <span className="text-nevada">Risco Financeiro:</span>
+                                    <span className="font-bold text-red-accent">-${calculation.riskAmount}</span>
+                                </div>
+                                <div className="flex justify-between text-sm sm:text-base">
+                                    <span className="text-nevada">Retorno Potencial:</span>
+                                    <span className="font-bold text-green-accent">+${calculation.profitAmount}</span>
+                                </div>
                             </div>
                         </>
                     ) : (
-                        <p className="text-nevada text-center text-sm">Insira os dados e aguarde um sinal para calcular.</p>
+                        <div className="text-center py-8">
+                            <p className="text-nevada text-sm">Insira os dados e aguarde um sinal para calcular a projeção.</p>
+                        </div>
                     )}
                 </div>
             </div>
@@ -213,7 +223,7 @@ const RiskCalculatorCard: React.FC<RiskCalculatorCardProps> = ({ signalDetails, 
                                 return (
                                     <div key={`buy-${index}`} className="bg-bunker p-3 rounded-lg border-l-4 border-green-accent">
                                         <div className="flex justify-between items-baseline">
-                                            <h4 className="text-sm font-bold text-green-accent uppercase tracking-wider">Compra Limite</h4>
+                                            <h4 className="text-sm font-semibold text-green-accent">{order.type}</h4>
                                             <p className="text-lg font-mono text-white">
                                                 @ ${order.price.toFixed(3)}
                                             </p>
@@ -240,7 +250,7 @@ const RiskCalculatorCard: React.FC<RiskCalculatorCardProps> = ({ signalDetails, 
                                 return (
                                    <div key={`sell-${index}`} className="bg-bunker p-3 rounded-lg border-l-4 border-red-accent">
                                         <div className="flex justify-between items-baseline">
-                                            <h4 className="text-sm font-bold text-red-accent uppercase tracking-wider">Venda Limite</h4>
+                                            <h4 className="text-sm font-semibold text-red-accent">{order.type}</h4>
                                             <p className="text-lg font-mono text-white">
                                                 @ ${order.price.toFixed(3)}
                                             </p>

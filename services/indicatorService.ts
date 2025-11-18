@@ -1,6 +1,6 @@
 import type { Candle, HeikinAshiCandle, PivotPoints, FibonacciLevels } from '../types';
 
-export const calculateRSI = (candles: Candle[], period: number = 15): number => {
+export const calculateRSI = (candles: Candle[], period: number = 14): number => {
     if (candles.length < period + 1) return 50;
 
     const priceChanges = candles.map((c, i) => i > 0 ? c.close - candles[i-1].close : 0).slice(1);
@@ -8,19 +8,22 @@ export const calculateRSI = (candles: Candle[], period: number = 15): number => 
     let gains = 0;
     let losses = 0;
 
+    // Use latest data for calculation
+    const relevantChanges = priceChanges.slice(priceChanges.length - (candles.length - 1));
+
     for (let i = 0; i < period; i++) {
-        if (priceChanges[i] > 0) {
-            gains += priceChanges[i];
+        if (relevantChanges[i] > 0) {
+            gains += relevantChanges[i];
         } else {
-            losses -= priceChanges[i];
+            losses -= relevantChanges[i];
         }
     }
 
     let avgGain = gains / period;
     let avgLoss = losses / period;
 
-    for (let i = period; i < priceChanges.length; i++) {
-        const change = priceChanges[i];
+    for (let i = period; i < relevantChanges.length; i++) {
+        const change = relevantChanges[i];
         avgGain = (avgGain * (period - 1) + (change > 0 ? change : 0)) / period;
         avgLoss = (avgLoss * (period - 1) + (change < 0 ? -change : 0)) / period;
     }
@@ -28,6 +31,50 @@ export const calculateRSI = (candles: Candle[], period: number = 15): number => 
     if (avgLoss === 0) return 100;
     const rs = avgGain / avgLoss;
     return 100 - (100 / (1 + rs));
+};
+
+export const calculateEMASeries = (candles: Candle[], period: number): (number | null)[] => {
+    if (candles.length < period) return candles.map(() => null);
+
+    const emas: (number | null)[] = Array(candles.length).fill(null);
+    const multiplier = 2 / (period + 1);
+    
+    let sma = 0;
+    for (let i = 0; i < period; i++) {
+        sma += candles[i].close;
+    }
+    emas[period - 1] = sma / period;
+
+    for (let i = period; i < candles.length; i++) {
+        const close = candles[i].close;
+        const prevEma = emas[i-1];
+        if (prevEma !== null) {
+            emas[i] = (close - prevEma) * multiplier + prevEma;
+        }
+    }
+
+    return emas;
+};
+
+export const calculateEMA = (candles: Candle[], period: number): number => {
+    if (candles.length < period) return 0;
+    
+    const multiplier = 2 / (period + 1);
+    
+    // Slice for a more stable calculation, but not the entire history for performance
+    const relevantCandles = candles.length > period * 3 ? candles.slice(-period * 3) : candles;
+
+    let sma = 0;
+    for (let i = 0; i < period; i++) {
+        sma += relevantCandles[i].close;
+    }
+    let ema = sma / period;
+
+    for (let i = period; i < relevantCandles.length; i++) {
+        ema = (relevantCandles[i].close - ema) * multiplier + ema;
+    }
+    
+    return ema;
 };
 
 export const calculateHeikinAshi = (candles: Candle[]): HeikinAshiCandle[] => {
@@ -68,9 +115,10 @@ export const calculateHeikinAshi = (candles: Candle[]): HeikinAshiCandle[] => {
 };
 
 export const calculateFibonacciLevels = (candles: Candle[], period: number = 90): FibonacciLevels | null => {
-    if (candles.length < period) return null;
+    const daysInCandles = Math.floor(candles.length / 24);
+    if (daysInCandles < period) return null;
 
-    const relevantCandles = candles.slice(-period);
+    const relevantCandles = candles.slice(-period * 24); // Look at last 90 days of hourly data
     
     let swingHigh = -Infinity;
     let swingLow = Infinity;
@@ -93,7 +141,6 @@ export const calculateFibonacciLevels = (candles: Candle[], period: number = 90)
     const isUptrend = highIndex > lowIndex;
     const range = swingHigh - swingLow;
 
-    // Fibonacci Ratios including 100% and 200%
     const fibRatios = [0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.618, 2.0];
     
     const levels: { [level: string]: number } = {};

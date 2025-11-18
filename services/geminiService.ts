@@ -14,36 +14,62 @@ export const getTradingAnalysis = async (vwap: VwapData | null): Promise<Analysi
     };
   }
 
-  // --- Dynamic Buy Order based on Weekly VWAP ---
-  const buyPrice = vwap.weekly.current * 0.998; // Entry slightly below weekly VWAP for a dip buy
-  const buyStopLoss = buyPrice * 0.99;         // 1% stop loss
-  const buyTakeProfit = buyPrice * 1.025;      // 2.5% take profit
-
-  const buyOrder: SuggestedOrder = {
-    type: "Buy Limit",
-    price: parseFloat(buyPrice.toFixed(3)),
-    takeProfit: parseFloat(buyTakeProfit.toFixed(3)),
-    stopLoss: parseFloat(buyStopLoss.toFixed(3)),
-    reason: "Ordem posicionada em zona de alta liquidez, antecipando um reteste e suporte na VWAP Semanal. Risco/Retorno atrativo."
+  // --- VWAP Semanal (Weekly) ---
+  const weeklyVwap = vwap.weekly.current;
+  // LOW Entry (Buy Limit)
+  const buyWeeklyPrice = weeklyVwap * 0.998;
+  const buyWeeklySL = buyWeeklyPrice * 0.99;
+  const buyWeeklyTP = buyWeeklyPrice * 1.025;
+  const buyWeeklyOrder: SuggestedOrder = {
+    type: "Buy Limit (VWAP Semanal LOW)",
+    price: parseFloat(buyWeeklyPrice.toFixed(3)),
+    takeProfit: parseFloat(buyWeeklyTP.toFixed(3)),
+    stopLoss: parseFloat(buyWeeklySL.toFixed(3)),
+    reason: "Ponto de entrada em suporte potencial ligeiramente abaixo da VWAP Semanal."
   };
 
-  // --- Dynamic Sell Order based on Monthly VWAP ---
-  const sellPrice = vwap.monthly.current * 1.002; // Entry slightly above monthly VWAP for a rejection sell
-  const sellStopLoss = sellPrice * 1.01;          // 1% stop loss
-  const sellTakeProfit = sellPrice * 0.975;       // 2.5% take profit
+  // HIGH Entry (Sell Limit)
+  const sellWeeklyPrice = weeklyVwap * 1.002;
+  const sellWeeklySL = sellWeeklyPrice * 1.01;
+  const sellWeeklyTP = sellWeeklyPrice * 0.975;
+  const sellWeeklyOrder: SuggestedOrder = {
+    type: "Sell Limit (VWAP Semanal HIGH)",
+    price: parseFloat(sellWeeklyPrice.toFixed(3)),
+    takeProfit: parseFloat(sellWeeklyTP.toFixed(3)),
+    stopLoss: parseFloat(sellWeeklySL.toFixed(3)),
+    reason: "Ponto de entrada em resistência potencial ligeiramente acima da VWAP Semanal."
+  };
+  
+  // --- VWAP Mensal (Monthly) ---
+  const monthlyVwap = vwap.monthly.current;
+  // LOW Entry (Buy Limit)
+  const buyMonthlyPrice = monthlyVwap * 0.995;
+  const buyMonthlySL = buyMonthlyPrice * 0.99;
+  const buyMonthlyTP = buyMonthlyPrice * 1.03; // Higher R:R for stronger level
+  const buyMonthlyOrder: SuggestedOrder = {
+    type: "Buy Limit (VWAP Mensal LOW)",
+    price: parseFloat(buyMonthlyPrice.toFixed(3)),
+    takeProfit: parseFloat(buyMonthlyTP.toFixed(3)),
+    stopLoss: parseFloat(buyMonthlySL.toFixed(3)),
+    reason: "Ponto de entrada em suporte principal, buscando uma reversão na VWAP Mensal."
+  };
 
-  const sellOrder: SuggestedOrder = {
-    type: "Sell Limit",
-    price: parseFloat(sellPrice.toFixed(3)),
-    takeProfit: parseFloat(sellTakeProfit.toFixed(3)),
-    stopLoss: parseFloat(sellStopLoss.toFixed(3)),
-    reason: "Ordem posicionada em forte resistência histórica, confluindo com a VWAP Mensal. Ideal para capturar uma retração."
+  // HIGH Entry (Sell Limit)
+  const sellMonthlyPrice = monthlyVwap * 1.005;
+  const sellMonthlySL = sellMonthlyPrice * 1.01;
+  const sellMonthlyTP = sellMonthlyPrice * 0.97; // Higher R:R for stronger level
+  const sellMonthlyOrder: SuggestedOrder = {
+    type: "Sell Limit (VWAP Mensal HIGH)",
+    price: parseFloat(sellMonthlyPrice.toFixed(3)),
+    takeProfit: parseFloat(sellMonthlyTP.toFixed(3)),
+    stopLoss: parseFloat(sellMonthlySL.toFixed(3)),
+    reason: "Ponto de entrada em resistência principal, antecipando uma rejeição na VWAP Mensal."
   };
 
   const analysis: AnalysisResult = {
-    sentiment: "Análise de IA: O preço está em uma faixa de negociação entre as VWAPs semanal e mensal. Sugerimos ordens pendentes em ambos os níveis para capturar os próximos movimentos decisivos.",
-    buyOrders: [buyOrder],
-    sellOrders: [sellOrder]
+    sentiment: "A IA sugere monitorar as VWAPs semanal e mensal. Foram identificados pontos de entrada potenciais para compra (suporte LOW) e venda (resistência HIGH) em ambos os níveis, permitindo estratégias de reversão.",
+    buyOrders: [buyWeeklyOrder, buyMonthlyOrder].sort((a,b) => a.price - b.price),
+    sellOrders: [sellWeeklyOrder, sellMonthlyOrder].sort((a,b) => a.price - b.price)
   };
 
   return Promise.resolve(analysis);

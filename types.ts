@@ -61,7 +61,21 @@ export interface FibonacciLevels {
     levels: { [level: string]: number };
 }
 
-// FIX: Add missing AnalysisResult and SuggestedOrder types used in geminiService.ts.
+export interface IndicatorValues {
+    rsi: number;
+    haCandle: HeikinAshiCandle | null;
+    pivots: PivotPoints | null;
+    vwap: VwapData | null;
+    fibonacci: FibonacciLevels | null;
+    ema50: number;
+    ema200: number;
+}
+
+export interface IndicatorSeries {
+    ema50: (number | null)[];
+    ema200: (number | null)[];
+}
+
 export interface SuggestedOrder {
   type: string;
   price: number;
@@ -73,6 +87,5 @@ export interface SuggestedOrder {
 export interface AnalysisResult {
   sentiment: string;
   buyOrders: SuggestedOrder[];
-  // FIX: Corrected typo from 'Suggested-Order' to 'SuggestedOrder'.
   sellOrders: SuggestedOrder[];
 }
