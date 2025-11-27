@@ -115,7 +115,7 @@ export const fetchCurrentPrice = async (): Promise<number> => {
     }
 
     // Lógica de simulação de preço como fallback, aprimorada para maior coerência
-    const maxFluctuation = 100; // Flutua em até +/- $100 por intervalo (mais volátil para BTC)
+    const maxFluctuation = 150; // Aumenta a flutuação diária para simular mais movimento
     const fluctuation = (Math.random() - 0.5) * maxFluctuation; 
     
     let newPrice = lastPrice + fluctuation;
@@ -123,12 +123,12 @@ export const fetchCurrentPrice = async (): Promise<number> => {
     // Aumenta a força de reversão para puxar o preço de volta para o preço de referência inicial.
     // Isso deve combater drifts maiores e manter a coerência geral com o ponto de partida.
     const deviation = newPrice - INITIAL_REFERENCE_PRICE;
-    const reversionFactor = 0.01; // Dobra o fator de reversão para maior "ancoragem"
+    const reversionFactor = 0.02; // Aumenta o fator de reversão para uma "ancoragem" mais forte
     newPrice -= deviation * reversionFactor; 
 
     // Limites para evitar preços absurdos na simulação, mantendo-o próximo ao preço inicial
-    lastPrice = Math.max(INITIAL_REFERENCE_PRICE * 0.9, newPrice); // Não ir muito abaixo de 90% do inicial
-    lastPrice = Math.min(INITIAL_REFERENCE_PRICE * 1.1, lastPrice); // Não ir muito acima de 110% do inicial
+    lastPrice = Math.max(INITIAL_REFERENCE_PRICE * 0.85, newPrice); // Não ir muito abaixo de 85% do inicial
+    lastPrice = Math.min(INITIAL_REFERENCE_PRICE * 1.15, lastPrice); // Não ir muito acima de 115% do inicial
 
     return Promise.resolve(parseFloat(lastPrice.toFixed(3)));
 }
